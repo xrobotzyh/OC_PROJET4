@@ -20,14 +20,19 @@ class Controller_display_main_menu():
                 new_tournament = View().display_add_new_tournament_menu()
                 write_to_json(new_tournament)
             elif self.choice == "1":
-                new_tournaments = load_from_json()
-                if new_tournaments == None:  # if there is no json file
+                if not os.path.exists('JSON FILES') :
                     print('**//!!!There is no tournament for the moment!!!//**\n\n\n')
                     self.choice = View().display_menu()
                     return self.choice
-                else:
-                    View().display_current_tournament(check_current_tournament(new_tournaments))
-                print(View().__init__().footer)
+                else :
+                    new_tournaments = load_from_json()
+                    if len(new_tournaments) == 0:  # if there is no json file
+                        print('**//!!!There is no tournament for the moment!!!//**\n\n\n')
+                        self.choice = View().display_menu()
+                        return self.choice
+                    else:
+                        View().display_current_tournament(check_current_tournament(new_tournaments))
+                        print(View().__init__().footer)
             elif self.choice == "2":
                 new_tournaments = load_from_json()
                 View().display_previous_tournament(check_finished_tournament(new_tournaments))
