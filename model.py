@@ -3,16 +3,17 @@ from typing import List, Dict, Any
 from datetime import datetime
 
 
-class Player():
+
+class Player:
     # dictionnary of field_name: field description to create a new Player
     INPUT_FIELDS = {
         'first_name': "Player's first name",
         'last_name': "Player's last name",
         'birthday': "Player's birthday DD/MM/YYYY",
-        'club_id': "Player's club id"
+        'club_id': "Player's club id",
     }
 
-    def __init__(self, id: int, first_name: str, last_name: str, birthday: datetime, club_id: str = "AB12345"):
+    def __init__(self,id:int,first_name: str, last_name: str, birthday: datetime, club_id: str = "AB12345"):
         self.score = 0
         self.id = id or 1
         self.first_name = first_name
@@ -23,7 +24,7 @@ class Player():
     @classmethod
     def from_values(cls, values: Dict[str, Any]):
         birthday = datetime.strptime(values['birthday'], "%d/%m/%Y")
-        user_id = int(values['id'])
+        user_id = values['id']
         return cls(
             id=user_id,
             first_name=values['first_name'],
@@ -33,12 +34,11 @@ class Player():
         )
 
     def as_dict(self):
-        player = {
-            "id": self.id,
-            "first name": self.first_name,
-            "last name": self.last_name,
-            "birthday DD/MM/YYYY": self.birthday,
-            "club id": self.club_id
+        player ={       "id":self.id,
+                        "first name": self.first_name,
+                        "last name": self.last_name,
+                        "birthday DD/MM/YYYY": self.birthday,
+                        "club id": self.club_id
         }
         return player
 
@@ -112,7 +112,7 @@ class Tournament:
         self.current_round_matches = self.generate_round_match_pairs()
 
     def generate_first_round_match_pairs(self):
-        # FIXME utiliser les scores des joueurs pour bien faire
+
         random.shuffle(self.players)
         if (len(self.players)) % 2 == 0:
             list_temporary = [self.players[i:i + 2] for i in range(0, len(self.players), 2)]

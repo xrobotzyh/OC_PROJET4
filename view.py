@@ -1,11 +1,11 @@
-from typing import Dict
+from typing import Dict,Any
 
 
-class View():
+class View:
 
     def __init__(self, header, footer):
         self.header = header
-        self.header_main = "*What do you want to do ?\n"
+        self.header_main = "\n*What do you want to do ?"
         self.header_add_tournament = "*Please complete the information below"
         self.footer = "\nPlease type the number for selecting \n"
 
@@ -19,7 +19,7 @@ class View():
             choice = input(self.footer)
         return choice
 
-    def get_user_inputs(self, input_fields: Dict[str, str]) -> Dict[str, str]:
+    def get_user_inputs(self, input_fields: Dict[str, Any]) -> Dict[str, str]:
         # Note for improvements: user input validation
         user_inputs = {}
         for key, value in input_fields.items():

@@ -7,10 +7,27 @@ from datetime import datetime
 from typing import Dict, Any
 
 from view import View
-from model import *
+from model import Player, Tournament, Match
+from datetime import datetime, date
+from tinydb import TinyDB, Query,table
+from tinydb.storages import JSONStorage
+from tinydb_serialization import SerializationMiddleware
+from tinydb_serialization.serializers import DateTimeSerializer
 
 
-class Controller():
+def reserialization(filename):
+        serialization = SerializationMiddleware(JSONStorage)
+        serialization.register_serializer(DateTimeSerializer(), 'birthday')
+        if not os.path.exists('resources'):
+            os.mkdir('resources')
+        filename = "resources/" + filename +'.json'
+        db = TinyDB(filename, storage=serialization)
+        return db
+
+
+
+class Controller:
+
     def __init__(self):
 
         self.view = View(
@@ -18,17 +35,84 @@ class Controller():
                    "|\n---------------------------------------- \n",
             footer="\n*Select the commande by typing the number\n",
         )
-        self.players = self.load_players_from_json()
+
         self.tournaments = {}
         self.current_tournament = None
+        db = reserialization('players')
+        self.players = db.all()
 
-    def load_players_from_json(self) -> Dict[int, Player]:
-        json_players_list = load_json_file('players.json')
-        players = {}
-        for json_player in json_players_list:
-            player = Player.from_values(json_player)
-            players[player.id] = player
-        return players
+    def display_update_player_menu(self):
+        choices = {
+            "0": "Enter player's id to update information",
+            "1": "Enter player's first name to find his id",
+            "2": "Enter player's last name to find his id",
+            "3": "back"
+        }
+        user_choice = self.view.display_menu(choices)  # show the main menu
+        if user_choice == "0":
+            self.update_player_by_id()
+        elif user_choice == "1":
+            self.find_player_id_by_first_name()
+        elif user_choice == "2":
+            self.find_player_id_by_last_name()
+        elif user_choice == "3":
+            self.display_player_management_menu()
+
+    def update_player_by_id(self):
+        db = reserialization('players')
+        db.all()
+        find =Query()
+        find_id = input("\n### Enter the id ###\n")
+        player = db.search(find['id']== int(find_id))
+        print(player)
+        input_fields = Player.INPUT_FIELDS
+        user_inputs = self.view.get_user_inputs(input_fields)
+        user_inputs['id'] = int(find_id)
+        player = Player.from_values(user_inputs)
+        player_dicts_forma = Player.as_dict(player)
+        db.update(player_dicts_forma,find['id']== int(find_id))
+        self.display_player_management_menu()
+
+    def find_player_id_by_first_name(self):
+        db = reserialization('players')
+        db.all()
+        find = Query()
+        find_first_name = input("\n### Enter the player's first name ###\n")
+        players = db.search(find['first name'] == find_first_name)
+        for player in players:
+            self.view.display_message(f"\n### Players List number {player['id']} ###")
+            for field, value in player.items():
+                player_msg = (f"{field} : {value}, ")
+                self.view.display_message(player_msg)
+        self.display_player_management_menu()
+
+
+    def find_player_id_by_last_name(self):
+        db = reserialization('players')
+        db.all()
+        find = Query()
+        find_first_name = input("\n### Enter the player's last name ###\n")
+        players = db.search(find['last name'] == find_first_name)
+        for player in players:
+            self.view.display_message(f"\n### Players List number {player['id']} ###")
+            for field, value in player.items():
+                player_msg = (f"{field} : {value}, ")
+                self.view.display_message(player_msg)
+        self.display_player_management_menu()
+
+    # def load_players_from_json(self) -> Dict[int, Player]:
+    #     db = reserialization('players')
+    #     players = db.all()
+    #     player_msg = ''
+    #     for player in players:
+    #         self.view.display_message("\n### Players List ###")
+    #
+    #     json_players_list = load_json_file('players.json')
+    #     players = {}
+    #     for json_player in json_players_list:
+    #         player = Player.from_values(json_player)
+    #         players[player.id] = player
+    #     return players
 
     def load_tournaments_from_json(self) -> Dict[int, Tournament]:
         # TODO
@@ -69,35 +153,60 @@ class Controller():
         if user_choice == "0":
             self.create_new_player()
         elif user_choice == "1":
-            self.update_player()
+            self.display_update_player_menu()
         elif user_choice == "2":
             self.display_players()
         elif user_choice == "3":
             self.display_main_menu()
 
     def create_new_player(self):
+        all_players_list = []
         input_fields = Player.INPUT_FIELDS
         user_inputs = self.view.get_user_inputs(input_fields)
-        user_inputs['id'] = str(self.generate_user_id())
+        user_inputs['id'] = self.generate_user_id()
         player = Player.from_values(user_inputs)
-        self.players[player.id] = player
-        self.persist_players()
-
-        self.view.display_message(f'Player {player.first_name} {player.last_name} added with id={player.id}\n')
+        player_dicts_forma = Player.as_dict(player)
+        print(player_dicts_forma)
+        db = reserialization('players')
+        db.insert(player_dicts_forma)
         self.display_player_management_menu()
 
-    def persist_players(self):
-        # TODO
-        pass
+    # def persist_players(self, new_player):
+    #     if not os.path.exists('resources'):
+    #         os.mkdir('resources')
+    #     players_persist_filename = "players"
+    #     filename = Path('resources/' + players_persist_filename + '.json')
+    #     db_player.insert(new_player)
 
     def generate_user_id(self) -> int:
         # Generate a new user_id that is not already in the database
         # WARNING: to make sure we don't override other players, we need to load the
         # players database before adding a new player
+        db = reserialization('players')
+        self.players = db.all()                        #reload json file everytime after a newplayer write to json file
         user_id = len(self.players) + 1
-        while user_id in self.players.keys():
-            user_id = user_id + 1
+        for player in self.players:
+            value = list(player.values())
+            new_id = value[0]
+            if user_id == new_id:
+                user_id = user_id + 1
+            return user_id
         return user_id
+
+
+    def display_players(self):
+        db = reserialization('players')
+        players = db.all()
+        player_msg = ''
+        for player in players:
+            self.view.display_message(f"\n### Players List number {player['id']} ###")
+        #     print(player)
+            for field, value in player.items():
+                player_msg = (f"{field} : {value}, ")
+                self.view.display_message(player_msg)
+        self.display_player_management_menu()
+
+
 
     def create_a_new_dict(self, listdata: list, new_data: dict):
         # a function that will update a list of players after input manipulations by users
@@ -112,7 +221,7 @@ class Controller():
             os.mkdir('resources')
         filename = Path('resources/' + filename + '.json')
         with open(filename, 'w') as json_object:
-            json.dump(dict_file, json_object)
+            datetimejson.dump(dict_file, json_object)
 
     def write_to_json_list(self, filename, list_file):
         if not os.path.exists('resources'):
@@ -122,19 +231,10 @@ class Controller():
             for single_element in list_file:
                 json.dump(single_element, json_object)
 
-    def display_players(self):
-        self.view.display_message("### Players List ###")
-        for player_id, player in self.players.items():
-            player_msg = ""
-            for field, value in player.as_dict().items():
-                player_msg += f"{field}: {value}, "
-            self.view.display_message(player_msg)
-        self.display_player_management_menu()
 
-
-def parse_date(str_date: str) -> datetime:
-    date = datetime.strptime(str_date, "%d/%m/%Y")
-    return date
+    def parse_date(self, str_date: str) -> datetime:
+        date = datetime.strptime(str_date, "%d/%m/%Y")
+        return date
 
 
 def load_from_json():
@@ -158,7 +258,7 @@ def load_from_json():
 def load_json_file(filename):
     filename = Path(os.getcwd() + '/resources/' + filename)
     with open(filename) as json_file:
-        json_values = json.load(json_file)
+            json_values = datetimejson.load(json_file)
     return json_values
 
 
@@ -299,3 +399,5 @@ def generate_next_round_match(list_player_with_score):
     list_player_next_round = []
     for player_with_score in list_player_with_score:
         list_player_next_round.append(player_with_score["player :"])  # a list without scores informations but sorted
+
+
