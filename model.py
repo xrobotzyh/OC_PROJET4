@@ -68,9 +68,19 @@ class Match:
 
 
 class Tournament:
-    def __init__(self, id: int, name: str, location: str, start_date: datetime, end_date: datetime, number_round: int,
-                 description: str, total_number_round: int, player_id: list = None):
-        self.id = id
+
+    INPUT_FIELDS = {
+        'name': "tournament name",
+        'location': "tournament location",
+        'start date': "tournament starting date DD/MM/YYYY",
+        'end date': "tournament ending date DD/MM/YYYY",
+        'tournament description': "tournament description",
+        'total round number': "total tournaments round number,4 by default",
+        # 'player': "player",
+    }
+    def __init__(self, ids: int, name: str, location: str, start_date: datetime, end_date: datetime, number_round: int,
+                 description: str, total_number_round: int, player: list = None):
+        self.ids = ids
         self.name = name
         self.location = location
         self.start_date = start_date
@@ -78,15 +88,34 @@ class Tournament:
         self.number_round = number_round
         self.description = description
         self.total_number_round = total_number_round
-        self.players = player_id  # WARNING fixme
+        self.players = player
 
         self.current_round = 1
         self.current_round_matches = []
         self.rounds = []
         self.players_scores = {}
 
-    def get_tournament(self):
+    @classmethod
+    def from_values(cls, values: Dict[str, Any]):
+        start_date = datetime.strptime(values['start date'], "%d/%m/%Y")
+        end_date = datetime.strptime(values['end date'], "%d/%m/%Y")
+        tournament_id = values['id']
+        player = values['player']
+        return cls(
+        ids = tournament_id,
+        name = values['name'],
+        location = values['location'],
+        start_date = start_date,
+        end_date = end_date,
+        number_round = 1,
+        description = values['tournament description'],
+        total_number_round = 4,
+        player = player,
+        )
+
+    def as_dict(self):
         tournament = {
+            'tournament id':self.ids,
             "Name": self.name,
             "Location": self.location,
             "First match date DD/MM/YYYY": self.start_date,
@@ -111,16 +140,33 @@ class Tournament:
         self.current_round += 1
         self.current_round_matches = self.generate_round_match_pairs()
 
-    def generate_first_round_match_pairs(self):
+    # def generate_first_round_match_pairs(self):
+    #
+    #     random.shuffle(self.players)
+    #     if (len(self.players)) % 2 == 0:
+    #         list_temporary = [self.players[i:i + 2] for i in range(0, len(self.players), 2)]
+    #         list_player_opponent_round = {1: list_temporary}
+    #         return list_player_opponent_round
+    #     else:
+    #         list_temporary = [self.players[i:i + 2] for i in range(0, len(self.players) - 1, 2)]
+    #         list_temporary.append([self.players[-1], None])
+    #         list_player_opponent_round = {"1": list_temporary}
+    #         return list_player_opponent_round
 
-        random.shuffle(self.players)
-        if (len(self.players)) % 2 == 0:
-            list_temporary = [self.players[i:i + 2] for i in range(0, len(self.players), 2)]
+    def generate_random_opponent_first_match(self,list_contestants):
+        """
+        for the first round game,we use random function
+        :param list_contestants: a list of contestants for the tournaments
+        :return: a dictionary key = round information value = list every opponents
+        """
+        random.shuffle(list_contestants)
+        if (len(list_contestants)) % 2 == 0:
+            list_temporary = [list_contestants[i:i + 2] for i in range(0, len(list_contestants), 2)]
             list_player_opponent_round = {1: list_temporary}
             return list_player_opponent_round
         else:
-            list_temporary = [self.players[i:i + 2] for i in range(0, len(self.players) - 1, 2)]
-            list_temporary.append([self.players[-1], None])
+            list_temporary = [list_contestants[i:i + 2] for i in range(0, len(list_contestants) - 1, 2)]
+            list_temporary.append([list_contestants[-1], None])
             list_player_opponent_round = {"1": list_temporary}
             return list_player_opponent_round
 
