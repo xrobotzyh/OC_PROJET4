@@ -12,7 +12,7 @@ class View:
         # a block to show add a new tournament,after the input return to the main menu
         print(self.header_main)
         choice = None
-        self._display_dicts(choices)
+        self.display_dicts(choices)
         while choice not in choices:
             choice = input(self.footer)
         return choice
@@ -31,7 +31,7 @@ class View:
     # def _display_lists(self, lists):
     #     for i in range(len(lists)):
     #         print(i)
-    def _display_dicts(self, dicts):
+    def display_dicts(self, dicts):
         # a function that will show the dictionary line by line
 
         for key, value in dicts.items():

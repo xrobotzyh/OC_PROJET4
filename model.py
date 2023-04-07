@@ -2,6 +2,9 @@ from random import random
 from typing import List, Dict, Any
 from datetime import datetime
 
+from tinydb.table import Document
+
+
 class Player:
     # dictionnary of field_name: field description to create a new Player
     INPUT_FIELDS = {
@@ -11,7 +14,7 @@ class Player:
         'club_id': "Player's club id",
     }
 
-    def __init__(self,id:int,first_name: str, last_name: str, birthday: datetime, club_id: str = "AB12345"):
+    def __init__(self, id: int, first_name: str, last_name: str, birthday: datetime, club_id: str = "AB12345"):
         self.score = 0
         self.id = id or 1
         self.first_name = first_name
@@ -22,7 +25,7 @@ class Player:
     @classmethod
     def from_values(cls, values: Dict[str, Any]):
         birthday = datetime.strptime(values['birthday'], "%d/%m/%Y")
-        user_id = values['id']
+        user_id = values.get('id', -1)
         return cls(
             id=user_id,
             first_name=values['first_name'],
@@ -31,12 +34,27 @@ class Player:
             club_id=values['club_id']
         )
 
+    @classmethod
+    def from_db(cls, document: Document):
+        return cls()  # TODO
+
     def as_dict(self):
-        player ={       "id":self.id,
-                        "first name": self.first_name,
-                        "last name": self.last_name,
-                        "birthday DD/MM/YYYY": self.birthday,
-                        "club id": self.club_id
+        player = {
+            "id": self.id,
+            "first name": self.first_name,
+            "last name": self.last_name,
+            "birthday DD/MM/YYYY": self.birthday,
+            "club id": self.club_id
+        }
+        return player
+
+    def to_json(self):
+        player = {
+            "id": self.id,
+            "first name": self.first_name,
+            "last name": self.last_name,
+            "birthday DD/MM/YYYY": self.birthday.strftime("%d/%m/%Y"),
+            "club id": self.club_id
         }
         return player
 
@@ -66,7 +84,6 @@ class Match:
 
 
 class Tournament:
-
     INPUT_FIELDS = {
         'name': "tournament name",
         'location': "tournament location",
@@ -75,6 +92,7 @@ class Tournament:
         'tournament description': "tournament description",
         'total round number': "total tournaments round number,4 by default",
     }
+
     def __init__(self, ids: int, name: str, location: str, start_date: datetime, end_date: datetime, number_round: int,
                  description: str, total_number_round: int, player: list = None):
         self.ids = ids
@@ -99,20 +117,20 @@ class Tournament:
         tournament_id = values['id']
         player = values['player']
         return cls(
-        ids = tournament_id,
-        name = values['name'],
-        location = values['location'],
-        start_date = start_date,
-        end_date = end_date,
-        number_round = 0,
-        description = values['tournament description'],
-        total_number_round = 4,
-        player = player,
+            ids=tournament_id,
+            name=values['name'],
+            location=values['location'],
+            start_date=start_date,
+            end_date=end_date,
+            number_round=0,
+            description=values['tournament description'],
+            total_number_round=4,
+            player=player,
         )
 
     def as_dict(self):
         tournament = {
-            'tournament id':self.ids,
+            'tournament id': self.ids,
             "Name": self.name,
             "Location": self.location,
             "First match date DD/MM/YYYY": self.start_date,
@@ -150,7 +168,7 @@ class Tournament:
     #         list_player_opponent_round = {"1": list_temporary}
     #         return list_player_opponent_round
 
-    def generate_random_opponent_first_match(self,list_contestants):
+    def generate_random_opponent_first_match(self, list_contestants):
         """
         for the first round game,we use random function
         :param list_contestants: a list of contestants for the tournaments
