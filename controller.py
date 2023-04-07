@@ -1,14 +1,12 @@
 import os
-import random
 from pathlib import Path
 from view import View
 from model import Player, Tournament, Match
-from datetime import datetime, date
-from tinydb import TinyDB, Query,table
+from tinydb import TinyDB, Query, table
 from tinydb.storages import JSONStorage
 from tinydb_serialization import SerializationMiddleware
 from tinydb_serialization.serializers import DateTimeSerializer
-
+from datetime import datetime
 
 
 
@@ -28,75 +26,6 @@ class Controller:
         self.players = db.all()
         db.close()
 
-    def display_update_player_menu(self):
-        choices = {
-            "0": "Enter player's id to update information",
-            "1": "Enter player's first name to find his id",
-            "2": "Enter player's last name to find his id",
-            "3": "back"
-        }
-        user_choice = self.view.display_menu(choices)  # show the main menu
-        if user_choice == "0":
-            self.update_player_by_id()
-        elif user_choice == "1":
-            self.find_player_id_by_first_name()
-        elif user_choice == "2":
-            self.find_player_id_by_last_name()
-        elif user_choice == "3":
-            self.display_player_management_menu()
-
-    def update_player_by_id(self):
-        db = self.reserialization_directory_resources('players')
-        db.all()
-        find =Query()
-        find_id = input("\n### Enter the id ###\n")
-        player = db.search(find['id']== int(find_id))
-        if player == [] :
-            self.view.display_message("\n###There is no such player id.###\n")
-        else:
-            input_fields = Player.INPUT_FIELDS
-            user_inputs = self.view.get_user_inputs(input_fields)
-            user_inputs['id'] = int(find_id)
-            player = Player.from_values(user_inputs)
-            player_dicts_forma = Player.as_dict(player)
-            db.update(player_dicts_forma,find['id']== int(find_id))
-        self.display_player_management_menu()
-        db.close()
-
-    def find_player_id_by_first_name(self):
-        db = self.reserialization_directory_resources('players')
-        db.all()
-        find = Query()
-        find_first_name = input("\n### Enter the player's first name ###\n")
-        players = db.search(find['first name'] == find_first_name)
-        if players == [] :
-            self.view.display_message("\n###There is no such player's first name.###\n")
-        else:
-            for player in players:
-                self.view.display_message(f"\n### Players List number {player['id']} ###")
-                for field, value in player.items():
-                    player_msg = (f"{field} : {value}, ")
-                    self.view.display_message(player_msg)
-        self.display_player_management_menu()
-        db.close()
-
-
-    def find_player_id_by_last_name(self):
-        db = self.reserialization_directory_resources('players')
-        db.all()
-        find = Query()
-        find_first_name = input("\n### Enter the player's last name ###\n")
-        players = db.search(find['last name'] == find_first_name)
-        if players == [] :
-            self.view.display_message("\n###There is no such player's first name.###\n")
-        else:
-            for player in players:
-                self.view.display_message(f"\n### Players List number {player['id']} ###")
-                for field, value in player.items():
-                    player_msg = (f"{field} : {value}, ")
-                    self.view.display_message(player_msg)
-        self.display_player_management_menu()
-        db.close()
 
 
     def display_main_menu(self):
@@ -122,6 +51,7 @@ class Controller:
             exit(0)
 
 
+
     def display_player_management_menu(self):
         choices = {
             "0": "Create a new Player",
@@ -139,23 +69,6 @@ class Controller:
         elif user_choice == "3":
             self.display_main_menu()
 
-    def display_tournament_management_menu(self):
-        choices = {
-            "0": "Create a new tournament",
-            "1": "manage a current tournament",
-            "2": "Show the finished tournaments",
-            "3": "Back",
-        }
-        user_choice = self.view.display_menu(choices)  # show the main menu
-        if user_choice == "0":
-            self.create_new_tournament()
-        elif user_choice == "1":
-            self.display_update_tournament_menu()
-        elif user_choice == "2":
-            self.display_finished_tournament()
-        elif user_choice == "3":
-            self.display_main_menu()
-
     def create_new_player(self):
         input_fields = Player.INPUT_FIELDS
         user_inputs = self.view.get_user_inputs(input_fields)
@@ -168,6 +81,107 @@ class Controller:
         db.close()
         self.display_player_management_menu()
 
+    def update_player_by_id(self):
+        db = self.reserialization_directory_resources('players')
+        db.all()
+        find = Query()
+        find_id = input("\n### Enter the id ###\n")
+        player = db.search(find['id'] == int(find_id))
+        if player == []:
+            self.view.display_message("\n###There is no such player id.###\n")
+        else:
+            input_fields = Player.INPUT_FIELDS
+            user_inputs = self.view.get_user_inputs(input_fields)
+            user_inputs['id'] = int(find_id)
+            player = Player.from_values(user_inputs)
+            player_dicts_forma = Player.as_dict(player)
+            db.update(player_dicts_forma, find['id'] == int(find_id))
+        self.display_player_management_menu()
+        db.close()
+
+    def display_update_player_menu(self):
+        choices = {
+            "0": "Enter player's id to update information",
+            "1": "Enter player's first name to find his id",
+            "2": "Enter player's last name to find his id",
+            "3": "back"
+        }
+        user_choice = self.view.display_menu(choices)  # show the main menu
+        if user_choice == "0":
+            self.update_player_by_id()
+        elif user_choice == "1":
+            self.find_player_id_by_first_name()
+        elif user_choice == "2":
+            self.find_player_id_by_last_name()
+        elif user_choice == "3":
+            self.display_player_management_menu()
+
+    def find_player_id_by_first_name(self):
+        db = self.reserialization_directory_resources('players')
+        db.all()
+        find = Query()
+        find_first_name = input("\n### Enter the player's first name ###\n")
+        players = db.search(find['first name'] == find_first_name)
+        if players == []:
+            self.view.display_message("\n###There is no such player's first name.###\n")
+        else:
+            for player in players:
+                self.view.display_message(f"\n### Players List number {player['id']} ###")
+                for field, value in player.items():
+                    player_msg = (f"{field} : {value}, ")
+                    self.view.display_message(player_msg)
+        self.display_player_management_menu()
+        db.close()
+
+    def find_player_id_by_last_name(self):
+        db = self.reserialization_directory_resources('players')
+        db.all()
+        find = Query()
+        find_first_name = input("\n### Enter the player's last name ###\n")
+        players = db.search(find['last name'] == find_first_name)
+        if players == []:
+            self.view.display_message("\n###There is no such player's first name.###\n")
+        else:
+            for player in players:
+                self.view.display_message(f"\n### Players List number {player['id']} ###")
+                for field, value in player.items():
+                    player_msg = (f"{field} : {value}, ")
+                    self.view.display_message(player_msg)
+        self.display_player_management_menu()
+        db.close()
+
+    def display_players(self):
+        db = self.reserialization_directory_resources('players')
+        players = db.all()
+        db.close()
+        player_msg = ''
+        for player in players:
+            self.view.display_message(f"\n### Players List number {player['id']} ###")
+            #     print(player)
+            for field, value in player.items():
+                player_msg = (f"{field} : {value}, ")
+                self.view.display_message(player_msg)
+        self.display_player_management_menu()
+
+
+
+
+    def display_tournament_management_menu(self):
+        choices = {
+            "0": "Create a new tournament",
+            "1": "manage a current tournament",
+            "2": "Show the finished tournaments",
+            "3": "Back",
+        }
+        user_choice = self.view.display_menu(choices)  # show the main menu
+        if user_choice == "0":
+            self.create_new_tournament()
+        elif user_choice == "1":
+            self.display_manage_a_current_tournament_menu()
+        elif user_choice == "2":
+            self.display_finished_tournament()
+        elif user_choice == "3":
+            self.display_main_menu()
 
     def create_new_tournament(self):
         input_fields = Tournament.INPUT_FIELDS
@@ -183,25 +197,65 @@ class Controller:
         table_tournament.insert(tournament_dicts_forma)
         self.display_tournament_management_menu()
 
-    def display_update_tournament_menu(self):
+    def display_manage_a_current_tournament_menu(self):
         choices = {
             "0": "manage the current tournament by id",
-            "1": "show all the current tournament",
+            "1": "show the current tournament",
             "2": "back",
         }
         user_choice = self.view.display_menu(choices)  # show the main menu
         if user_choice == "0":
-            self.display_load_tournament_by_id()
+            self.display_manage_the_current_tournament_by_id_menu()
         elif user_choice == "1":
-            self.show_the_current_tournament()
+            self.display_the_current_tournament()
         elif user_choice == "2":
             self.display_tournament_management_menu()
 
-    def display_load_tournament_by_id(self):
+    def display_manage_the_current_tournament_by_id_menu(self):
         tournament = input('Please enter the id of the tournament\n')
         self.load_tournament_by_id(tournament)
 
-    def show_the_current_tournament(self):
+    def display_update_tournament_by_id(self, tournaments):  # ??<<<<<<<<<
+
+        choices = {
+            "0": "Generate next round game",
+            "1": "Enter the winner information of the last match",
+            "2": "update information of the tournament",
+            "3": "back"
+        }
+        user_choice = self.view.display_menu(choices)  # show the main menu
+        if user_choice == "0":
+            db = self.reserialization_directory_resources('data/tournament')
+            list_player = tournaments[0][0][0]['List of players participate']
+            print(list_player[0])
+            # for tournament in list(tournaments['List of players participate'][0]) :
+            #     listplayer.append(tournament)
+            # print(tournaments[0]['List of players participate'])
+            # match = generate_random_opponent_first_match(listplayer)
+            # print(match)
+            self.display_update_tournament_by_id(tournaments)
+        elif user_choice == "1":
+            self.find_player_id_by_first_name()
+        elif user_choice == "2":
+            self.update_information_of_a_tournament(tournaments)
+        elif user_choice == "3":
+            self.display_tournament_management_menu()
+
+
+    def update_information_of_a_tournament(self,tournaments):
+        db = self.reserialization_directory_resources('data/tournament')
+        table = db.table(tournaments[0][0][0]['Name'])         #--------> ??????
+        input_fields = Tournament.INPUT_FIELDS
+        user_inputs = self.view.get_user_inputs(input_fields)
+        user_inputs['id'] = tournaments[0][0][0]['tournament id']
+        user_inputs['player'] = self.add_palyers_to_tournament()
+        tourna = Tournament.from_values(user_inputs)
+        tournament_dicts_forma = Tournament.as_dict(tourna)
+        print(tournament_dicts_forma)
+        table.update(tournament_dicts_forma)
+        self.display_update_tournament_by_id(tournaments)
+
+    def display_the_current_tournament(self):
         db = self.reserialization_directory_resources('data/tournament')
         finish_date = Query()
         now = datetime.now()
@@ -233,40 +287,14 @@ class Controller:
         db.close()
         self.display_tournament_management_menu()
 
-
-    def load_tournament_by_id(self,tournament_id):
-        db = self.reserialization_directory_resources('data/tournament')
-        by_id = Query()
-        tournament = db.search(by_id["tournament id"] == int(tournament_id))
-        if tournament == [] :
+    def load_tournament_by_id(self, tournament_id):
+        tournament_list = []
+        tournament_list.append(self.find_value_in_all_tables_tournament("tournament id",int(tournament_id)))
+        if not tournament_list:
             self.view.display_message("There is no such tournament")
-            self.display_update_tournament_menu()
-        else :
-            self.display_update_tournament_by_id(tournament)
-
-    def display_update_tournament_by_id(self,tournaments):
-
-        choices = {
-            "0": "Generate next round game",
-            "1": "Enter the winner information of the last match",
-            "2": "update information of the tournament",
-            "3": "back"
-        }
-        user_choice = self.view.display_menu(choices)  # show the main menu
-        if user_choice == "0":
-            listplayer = []
-            # for tournament in list(tournaments['List of players participate'][0]) :
-            #     listplayer.append(tournament)
-            print(tournaments[0]['List of players participate'])
-            # match = generate_random_opponent_first_match(listplayer)
-            # print(match)
-            self.display_update_tournament_by_id(tournaments)
-        elif user_choice == "1":
-            self.find_player_id_by_first_name()
-        elif user_choice == "2":
-            self.find_player_id_by_last_name()
-        elif user_choice == "3":
-            self.display_player_management_menu()
+            self.display_manage_a_current_tournament_menu()
+        else:
+            self.display_update_tournament_by_id(tournament_list)
 
 
 
@@ -277,7 +305,7 @@ class Controller:
         # WARNING: to make sure we don't override other players, we need to load the
         # players database before adding a new player
         db = self.reserialization_directory_resources('players')
-        self.players = db.all()   #reload json file everytime after a newplayer write to json file
+        self.players = db.all()  # reload json file everytime after a newplayer write to json file
         db.close()
         user_id = len(self.players) + 1
         for player in self.players:
@@ -288,13 +316,12 @@ class Controller:
             return user_id
         return user_id
 
-
     def generate_tournament_id(self) -> int:
         db = self.reserialization_directory_resources('data/tournament')
-        tournaments = db.tables()  #reload json file everytime after a newplayer write to json file
+        tournaments = db.tables()  # reload json file everytime after a newplayer write to json file
         tournament_id = len(tournaments) + 1
         for tournament in tournaments:
-            table  = db.table(tournament)
+            table = db.table(tournament)
             tournament = table.all()
             new_id = tournament[0]['tournament id']
             if tournament_id == new_id:
@@ -302,13 +329,29 @@ class Controller:
             return tournament_id
         return tournament_id
 
+    def find_value_in_all_tables_tournament(self,search_key:str,value:str) -> list:
+        db = self.reserialization_directory_resources('data/tournament')
+        q_obj = Query()
+        table_names = db.tables()
+        tournament_list = []
+        for table_name in table_names:
+            table = db.table(table_name)
+            tournaments = table.search(q_obj[search_key]==value)
+            if not tournaments:
+                pass
+            else:
+                tournament_list.append(tournaments)
+        db.close()
+        return tournament_list
+
+
     def add_palyers_to_tournament(self):
         list_player = []
         db = self.reserialization_directory_resources('players')
         db.all()
         find = Query()
         choice = 'Y'
-        while choice == 'Y'or choice == 'yes' or choice == 'y':
+        while choice == 'Y' or choice == 'yes' or choice == 'y':
             player_id = input('Please enter the player\'s id to add player\n')
             player = db.search(find['id'] == int(player_id))
             if player == []:
@@ -318,23 +361,6 @@ class Controller:
             choice = input('Do you want to add another player Y or N\n')
         db.close()
         return list_player
-
-
-
-
-
-    def display_players(self):
-        db = self.reserialization_directory_resources('players')
-        players = db.all()
-        db.close()
-        player_msg = ''
-        for player in players:
-            self.view.display_message(f"\n### Players List number {player['id']} ###")
-        #     print(player)
-            for field, value in player.items():
-                player_msg = (f"{field} : {value}, ")
-                self.view.display_message(player_msg)
-        self.display_player_management_menu()
 
 
 
@@ -352,13 +378,12 @@ class Controller:
         filename = Path('data/' + filename)
         return filename
 
-
-    def reserialization_directory_resources(self,filename):
+    def reserialization_directory_resources(self, filename):
         serialization = SerializationMiddleware(JSONStorage)
         serialization.register_serializer(DateTimeSerializer(), 'date')
         if not os.path.exists('resources'):
             os.mkdir('resources')
-        filename = Path("resources/" + str(filename) +'.json')
+        filename = Path("resources/" + str(filename) + '.json')
         db = TinyDB(filename, storage=serialization)
         return db
 
@@ -382,8 +407,7 @@ def update_one_dict(dictid: str, listdata: list, key: str):
     return listdata
 
 
-
-def display_enter_winner(players_opponent):
+def display_input_winner(players_opponent):
     winner = input(f'Please enter the winner of the game {players_opponent[0]} vs '
                    f'{players_opponent[1]}. '
                    f'The winner is 1 or 2 or 0 for Draw\n')
@@ -399,7 +423,7 @@ def update_winner_state_match(list_opponent_in_match, rounds):
     """
     list_player_in_match_with_winner = []
     for players_opponent in list_opponent_in_match[rounds]:
-        winner = display_enter_winner(players_opponent)
+        winner = display_input_winner(players_opponent)
         players_opponent.append(winner)
         list_temporary = [players_opponent[i:i + 2] for i in range(0, len(players_opponent), 2)]
         list_player_in_match_with_winner.append(list_temporary)
@@ -443,6 +467,7 @@ def update_scores_after_match(list_player_in_match_with_winner, list_player_with
         i += 1
     return list_player_with_score  # return a list with [{player:A,score:int},{},{}]
 
+
 def generate_random_opponent_first_match(list_contestants):
     """
     for the first round game,we use random function
@@ -471,5 +496,3 @@ def generate_next_round_match(list_player_with_score):
     list_player_next_round = []
     for player_with_score in list_player_with_score:
         list_player_next_round.append(player_with_score["player :"])  # a list without scores informations but sorted
-
-

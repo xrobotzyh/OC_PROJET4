@@ -1,6 +1,4 @@
 from typing import Dict,Any
-
-
 class View:
 
     def __init__(self, header, footer):

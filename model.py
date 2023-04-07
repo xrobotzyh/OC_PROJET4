@@ -2,8 +2,6 @@ from random import random
 from typing import List, Dict, Any
 from datetime import datetime
 
-
-
 class Player:
     # dictionnary of field_name: field description to create a new Player
     INPUT_FIELDS = {
@@ -76,7 +74,6 @@ class Tournament:
         'end date': "tournament ending date DD/MM/YYYY",
         'tournament description': "tournament description",
         'total round number': "total tournaments round number,4 by default",
-        # 'player': "player",
     }
     def __init__(self, ids: int, name: str, location: str, start_date: datetime, end_date: datetime, number_round: int,
                  description: str, total_number_round: int, player: list = None):
@@ -90,10 +87,10 @@ class Tournament:
         self.total_number_round = total_number_round
         self.players = player
 
-        self.current_round = 1
-        self.current_round_matches = []
-        self.rounds = []
-        self.players_scores = {}
+        # self.current_round = 0
+        # self.current_round_matches = []
+        # self.rounds = []
+        # self.players_scores = {}
 
     @classmethod
     def from_values(cls, values: Dict[str, Any]):
@@ -107,7 +104,7 @@ class Tournament:
         location = values['location'],
         start_date = start_date,
         end_date = end_date,
-        number_round = 1,
+        number_round = 0,
         description = values['tournament description'],
         total_number_round = 4,
         player = player,
