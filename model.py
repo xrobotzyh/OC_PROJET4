@@ -2,9 +2,6 @@ from random import random
 from typing import List, Dict, Any
 from datetime import datetime
 
-from tinydb.table import Document
-
-
 class Player:
     # dictionnary of field_name: field description to create a new Player
     INPUT_FIELDS = {
@@ -14,7 +11,7 @@ class Player:
         'club_id': "Player's club id",
     }
 
-    def __init__(self, id: int, first_name: str, last_name: str, birthday: datetime, club_id: str = "AB12345"):
+    def __init__(self,id:int,first_name: str, last_name: str, birthday: datetime, club_id: str = "AB12345"):
         self.score = 0
         self.id = id or 1
         self.first_name = first_name
@@ -25,7 +22,7 @@ class Player:
     @classmethod
     def from_values(cls, values: Dict[str, Any]):
         birthday = datetime.strptime(values['birthday'], "%d/%m/%Y")
-        user_id = values.get('id', -1)
+        user_id = values['id']
         return cls(
             id=user_id,
             first_name=values['first_name'],
@@ -35,26 +32,23 @@ class Player:
         )
 
     @classmethod
-    def from_db(cls, document: Document):
-        return cls()  # TODO
+    def from_db(cls,document: Dict[str,Any]):
+        birthday = document['birthday DD/MM/YYYY']   #datetime.strptime(, "%d/%m/%Y")
+        return cls(
+            id = document['id'],
+            first_name = document['first name'],
+            last_name = document['last name'],
+            birthday = birthday,
+            club_id = document['club id']
+        )
 
     def as_dict(self):
-        player = {
-            "id": self.id,
-            "first name": self.first_name,
-            "last name": self.last_name,
-            "birthday DD/MM/YYYY": self.birthday,
-            "club id": self.club_id
-        }
-        return player
-
-    def to_json(self):
-        player = {
-            "id": self.id,
-            "first name": self.first_name,
-            "last name": self.last_name,
-            "birthday DD/MM/YYYY": self.birthday.strftime("%d/%m/%Y"),
-            "club id": self.club_id
+        player ={
+                        "id":self.id,
+                        "first name": self.first_name,
+                        "last name": self.last_name,
+                        "birthday DD/MM/YYYY": self.birthday,
+                        "club id": self.club_id
         }
         return player
 
@@ -84,6 +78,7 @@ class Match:
 
 
 class Tournament:
+
     INPUT_FIELDS = {
         'name': "tournament name",
         'location': "tournament location",
@@ -92,7 +87,6 @@ class Tournament:
         'tournament description': "tournament description",
         'total round number': "total tournaments round number,4 by default",
     }
-
     def __init__(self, ids: int, name: str, location: str, start_date: datetime, end_date: datetime, number_round: int,
                  description: str, total_number_round: int, player: list = None):
         self.ids = ids
@@ -110,6 +104,9 @@ class Tournament:
         # self.rounds = []
         # self.players_scores = {}
 
+    def __str__(self):
+        return f"Tournament: name={self.name}, location={self.location}, start_date={self.start_date}, end_date={self.end_date}, players={self.players}, rounds={self.number_round}"
+
     @classmethod
     def from_values(cls, values: Dict[str, Any]):
         start_date = datetime.strptime(values['start date'], "%d/%m/%Y")
@@ -117,20 +114,36 @@ class Tournament:
         tournament_id = values['id']
         player = values['player']
         return cls(
-            ids=tournament_id,
-            name=values['name'],
-            location=values['location'],
+        ids = tournament_id,
+        name = values['name'],
+        location = values['location'],
+        start_date = start_date,
+        end_date = end_date,
+        number_round = 0,
+        description = values['tournament description'],
+        total_number_round = 4,
+        player = player,
+        )
+
+    @classmethod
+    def from_db(cls, document: Dict[str, Any]):
+        start_date = datetime.strftime(document['First match date DD/MM/YYYY'], "%d/%m/%Y")
+        end_date = datetime.strftime(document['Last match date DD/MM/YYYY'], "%d/%m/%Y")
+        return cls(
+            ids=document['tournament id'],
+            name=document['Name'],
+            location=document['Location'],
             start_date=start_date,
             end_date=end_date,
             number_round=0,
-            description=values['tournament description'],
+            description=document['Descrition of the tournament'],
             total_number_round=4,
-            player=player,
+            player=document['List of players participate'],
         )
 
     def as_dict(self):
         tournament = {
-            'tournament id': self.ids,
+            'tournament id':self.ids,
             "Name": self.name,
             "Location": self.location,
             "First match date DD/MM/YYYY": self.start_date,
@@ -141,10 +154,10 @@ class Tournament:
             "Descrition of the tournament": self.description
         }
         return tournament
-
-    def is_finished(self):
+    @staticmethod
+    def is_finished(end_date):
         now = datetime.now()
-        return self.end_date <= now
+        return end_date <= now
 
     def start(self):
         self.current_round_matches = self.generate_first_round_match_pairs()
@@ -168,7 +181,7 @@ class Tournament:
     #         list_player_opponent_round = {"1": list_temporary}
     #         return list_player_opponent_round
 
-    def generate_random_opponent_first_match(self, list_contestants):
+    def generate_random_opponent_first_match(self,list_contestants):
         """
         for the first round game,we use random function
         :param list_contestants: a list of contestants for the tournaments
