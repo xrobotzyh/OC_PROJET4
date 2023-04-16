@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import Dict, Optional, List
+import random
 
 from tinydb.table import Document
 
@@ -23,15 +24,12 @@ class Controller:
                    "|\n---------------------------------------- \n",
             footer="\n*Select the commande by typing the number\n",
         )
-
         self.tournaments: Dict[int, Tournament] = {}  # self.load_tournaments_from_db()
         self.current_tournament: Optional[Tournament] = None  # self.load_current_tournament_from_db()
         self.db_passed_tournament: Optional[Tournament] = None
         self.db_players = self.reserialization_directory_resources('players')
         self.db_current_tournament = self.reserialization_directory_resources('/data/current_tournament')
         self.db_passed_tournament= self.reserialization_directory_resources('/data/passed_tournament')
-        # self.db_players.all()
-        # self.db_tournaments.all()
         self.players: Dict[int, Player] = self.load_players_from_db()
         self.tournaments : Dict[int, Tournament] = self.load_tournaments_from_db()
         self.current_tournament : Dict[int,Tournament] = self.load_current_tournaments_from_db()
@@ -58,22 +56,24 @@ class Controller:
 
     def load_current_tournaments_from_db(self):
         db = self.db_current_tournament
-        table_names = db.tables()
+        # table_names = db.tables()
+        tournaments_document = db.all()
         tournaments = {}
-        for table_name in table_names:
-            tournaments_document = db.table(table_name).all()
-            for tournament_document in tournaments_document:
-                tournaments[tournament_document.doc_id] = Tournament.from_db(tournament_document)
+        # for table_name in table_names:
+        #     tournaments_document = db.table(table_name).all()
+        for tournament_document in tournaments_document:
+            tournaments[tournament_document.doc_id] = Tournament.from_db(tournament_document)
         return tournaments
 
     def load_passed_tournaments_from_db(self):
         db = self.db_passed_tournament
-        table_names = db.tables()
+        # table_names = db.tables()
+        tournaments_document = db.all()
         tournaments = {}
-        for table_name in table_names:
-            tournaments_document = db.table(table_name).all()
-            for tournament_document in tournaments_document:
-                tournaments[tournament_document.doc_id] = Tournament.from_db(tournament_document)
+        # for table_name in table_names:
+        #     tournaments_document = db.table(table_name).all()
+        for tournament_document in tournaments_document:
+            tournaments[tournament_document.doc_id] = Tournament.from_db(tournament_document)
         return tournaments
     def display_main_menu(self):
         choices = {
@@ -119,7 +119,7 @@ class Controller:
         elif user_choice == "3":
             self.display_main_menu()
 
-    def display_update_player_information_menu(self):
+    def display_update_player_information_menu(self) ->str :
         choices = {
             "0": "Edit the player's first name",
             "1": "Edit the player's last name",
@@ -139,6 +139,43 @@ class Controller:
         elif user_choice == "3":
             value = 'club id'
             return value
+
+
+    def display_update_tournament_information_menu(self) ->str :
+        choices = {
+            "0": "Edit the tournament's name",
+            "1": "Edit the tournament's location",
+            "2": "Edit the tournament's start date",
+            "3": "Edit the tournament's end date",
+            "4": "Edit the tournament's total round",
+            "5": "Edit the tournament's players list",
+            "6": "Edit the tournament's description",
+        }
+        user_choice = self.view.display_menu(choices)  # show the main menu
+        if user_choice == "0":
+            value = 'Name'
+            return value
+        elif user_choice == "1":
+            value = 'Location'
+            return value
+        elif user_choice == "2":
+            value = 'First match date DD/MM/YYYY'
+            return value
+        elif user_choice == "3":
+            value = 'Last match date DD/MM/YYYY'
+            return value
+        elif user_choice == "4":
+            value = 'Total number of round'
+            return value
+        elif user_choice == "5":
+            value = 'List of players participate'
+            return value
+        elif user_choice == "6":
+            value = 'Descrition of the tournament'
+            return value
+        # else :
+        #     self.view.display_message('Please entre the number 1-6')
+
 
     def create_new_player(self):
         # Create player from user inputs
@@ -246,15 +283,15 @@ class Controller:
         user_inputs['player'] = self.add_palyers_to_tournament()
         tournament = Tournament.from_values(user_inputs)
         if Tournament.is_finished(tournament.end_date):
-            tournament['id'] = self.generate_passed_tournament_id()
             db = self.db_passed_tournament
-            table_tournament = db.table(user_inputs['name'])
-            table_tournament.insert(Tournament.as_dict(tournament))
+            # table_tournament = db.table(user_inputs['name'])
+            db.insert(Tournament.as_dict(tournament))
         else :
-            tournament['id'] = self.generate_current_tournament_id()
+            # tournament['id'] = self.generate_current_tournament_id()
             db = self.db_current_tournament
-            table_tournament = db.table(user_inputs['name'])
-            table_tournament.insert(Tournament.as_dict(tournament))
+            # table_tournament = db.table(user_inputs['name'])
+            db.insert(Tournament.as_dict(tournament))
+        self.view.display_message(f'The tournament is created !')
         self.display_tournament_management_menu()
 
     def display_manage_a_current_tournament_menu(self):
@@ -272,10 +309,10 @@ class Controller:
             self.display_tournament_management_menu()
 
     def display_manage_the_current_tournament_by_id_menu(self):
-        tournament = input('Please enter the id of the tournament\n')
-        self.load_tournament_by_id(tournament)
+        tournament_id = input('Please enter the id of the tournament\n')
+        self.display_update_tournament_by_id(tournament_id)
 
-    def display_update_tournament_by_id(self, tournaments):  # ??<<<<<<<<<
+    def display_update_tournament_by_id(self, tournament_id):  # ??<<<<<<<<<
 
         choices = {
             "0": "Generate next round game",
@@ -285,50 +322,95 @@ class Controller:
         }
         user_choice = self.view.display_menu(choices)  # show the main menu
         if user_choice == "0":
-            db = self.reserialization_directory_resources('data/tournament')
-            list_player = tournaments[0][0][0]['List of players participate']
-            print(list_player[0])
-            # for tournament in list(tournaments['List of players participate'][0]) :
-            #     listplayer.append(tournament)
-            # print(tournaments[0]['List of players participate'])
-            # match = generate_random_opponent_first_match(listplayer)
-            # print(match)
-            self.display_update_tournament_by_id(tournaments)
+            tournament = self.find_tournament_by_id(tournament_id)
+            player_list = self.get_player_id_list_from_tournament(tournament)
+            list_of_id = Tournament.generate_random_opponent_first_match(player_list)
+            list_total = list()
+            for listid in list_of_id :
+                list_total.append(listid)
+            print(list_total)
+            next_round_score = {}
+            next_round_list_with_score = Tournament.update_winner_state_match(list_total,self.players,next_round_score)
+            print(next_round_list_with_score)
+            next_round_list_sorted = Tournament.sort_list_of_players_by_scores(next_round_list_with_score)
+            print(next_round_list_sorted)
+            list_of_id = list(next_round_list_sorted.keys())
+            print(list_of_id)
+            list_next_round,list_total = Tournament.generate_next_round_match(list_of_id,list_total)
+            i =0
+            while i<=len(list_of_id):
+                next_round_list_with_score = Tournament.update_winner_state_match(list_next_round, self.players,next_round_list_with_score)
+                print(next_round_list_with_score)
+                next_round_list_sorted = Tournament.sort_list_of_players_by_scores(next_round_list_with_score)
+                list_of_id = list(next_round_list_sorted.keys())
+                list_next_round, list_total = Tournament.generate_next_round_match(list_of_id, list_total)
+                if not list_next_round:
+                    break
+                else:
+                    i += 1
+                print(next_round_list_sorted)
+            # self.Tournament.generate_random_opponent_first_match()
+            # self.display_update_tournament_by_id(tournaments)
         elif user_choice == "1":
             self.find_player_id_by_first_name()
         elif user_choice == "2":
-            self.update_information_of_a_tournament(tournaments)
+            self.update_information_of_a_tournament(tournament_id)
         elif user_choice == "3":
             self.display_tournament_management_menu()
 
-    def update_information_of_a_tournament(self, tournaments):
-        table = self.db_current_tournament.table(tournaments[0][0][0]['Name'])  # --------> ??????
-        input_fields = Tournament.INPUT_FIELDS
-        user_inputs = self.view.get_user_inputs(input_fields)
-        user_inputs['id'] = tournaments[0][0][0]['tournament id']
-        user_inputs['player'] = self.add_palyers_to_tournament()
-        tourna = Tournament.from_values(user_inputs)
-        tournament_dicts_forma = Tournament.as_dict(tourna)
-        print(tournament_dicts_forma)
-        table.update(tournament_dicts_forma)
-        self.display_update_tournament_by_id(tournaments)
+    def get_player_id_list_from_tournament(self,tournament:Tournament)->list[str]:
+        list_player_id = []
+        list_player_in_tournament = tournament['List of players participate']
+        for sublist in list_player_in_tournament:
+            for player in sublist:
+                list_player_id.append(player['id'])
+        return list_player_id
+
+    def update_information_of_a_tournament(self, find_id:str):
+        db = self.db_current_tournament
+        tournament = self.find_tournament_by_id(find_id)
+        if tournament is not None:
+            change_value = self.display_update_tournament_information_menu()
+            if change_value == 'List of players participate':
+                players = tournament['List of players participate']
+                print(f'The player in the tournaments are : {players}')
+                players = self.add_palyers_to_tournament()
+                db.update({change_value: players}, doc_ids=[int(find_id)])
+            elif change_value in ('First match date DD/MM/YYYY','Last match date DD/MM/YYYY'):
+                new_value = input(f'please enter the new {change_value}\n')
+                new_value_date = datetime.strptime(new_value, "%d/%m/%Y")
+                db.update({change_value: new_value_date}, doc_ids=[int(find_id)])
+            else :
+                new_value = input(f'please enter the new {change_value}\n')
+                db.update({change_value: new_value}, doc_ids=[int(find_id)])
+            print("Tournament updated successfully!")
+        self.display_update_tournament_by_id(find_id)
 
     def display_the_current_tournament(self):
         tournaments = self.current_tournament
-        for tournament_number, tournament in tournaments.items():
-            self.view.display_message(f'### the list of tournament number {tournament_number} ####')
-            self.view.display_dicts(tournament.as_dict())
-            self.display_tournament_management_menu()
+        if len(tournaments) != 0 :
+            for tournament_number, tournament in tournaments.items():
+                self.view.display_message(f'\n### the list of tournament id {tournament_number} ####')
+                self.view.display_dicts(tournament.as_dict())
+        else :
+            self.view.display_message(f'There is no current tournament')
+        self.display_tournament_management_menu()
+
+
     def display_finished_tournament(self):
         tournaments = self.passed_tournament
-        for tournament_number,tournament in tournaments.items():
-            self.view.display_message(f'### the list of tournament number {tournament_number} ####')
-            self.view.display_dicts(tournament.as_dict())
-            self.display_tournament_management_menu()
+        print(len(tournaments))
+        if len(tournaments) != 0 :
+            for tournament_number,tournament in tournaments.items():
+                self.view.display_message(f'\n### the list of tournament id {tournament_number} ####')
+                self.view.display_dicts(tournament.as_dict())
+        else :
+            self.view.display_message(f'There is no passed tournament')
+        self.display_tournament_management_menu()
 
-    def load_tournament_by_id(self, tournament_id):
+    def load_tournament_by_id(self, tournament_id:str) :
         tournament_list = []
-        tournament_list.append(self.find_value_in_all_tables_tournament("tournament id", int(tournament_id)))
+        tournament_list.append(self.find_tournament_by_id("tournament id", int(tournament_id)))
         if not tournament_list:
             self.view.display_message("There is no such tournament")
             self.display_manage_a_current_tournament_menu()
@@ -347,33 +429,31 @@ class Controller:
             return user_id
         return user_id
 
-    def generate_tournament_id(self) -> int:
-        tournaments = self.
-        tournaments_names = db.tables() # reload json file everytime after a newplayer write to json file
-        tournament_id = len(tournaments_names) + 1
-        for tournament_name in tournaments_names:
-            tournament_document = db.table(tournament_name).all()
-            new_id = tournament_document['tournament id']
-            if tournament_id == new_id:
-                tournament_id = tournament_id + 1
-            return tournament_id
-        return tournament_id
+    # def generate_tournament_id(self) -> int:
+    #     tournaments_names = db.tables() # reload json file everytime after a newplayer write to json file
+    #     tournament_id = len(tournaments_names) + 1
+    #     for tournament_name in tournaments_names:
+    #         tournament_document = db.table(tournament_name).all()
+    #         new_id = tournament_document['tournament id']
+    #         if tournament_id == new_id:
+    #             tournament_id = tournament_id + 1
+    #         return tournament_id
+    #     return tournament_id
 
-    def find_value_in_all_tables_tournament(self, search_key: str, value: str) -> list:
-        db = self.db_current_tournament
-        q_obj = Query()
-        table_names = self.db_current_tournament.tables()
-        tournament_list = []
-        for table_name in table_names:
-            table = db.table(table_name)
-            tournaments = table.search(q_obj[search_key] == value)
-            if not tournaments:
-                pass
-            else:
-                tournament_list.append(tournaments)
-        return tournament_list
+    def find_tournament_by_id(self, search_key: str) -> Optional[Tournament]:
+        tournament = self.current_tournament
+        tournament_found = None
+        for tournament_id,tournament in tournament.items():
+            if int(search_key) == tournament_id:
+                tournament_found = tournament.as_dict()
+                self.view.display_message('The tournament is found !')
+                break
+        if tournament_found is None:
+            self.view.display_message("The tournament is not found")
+        # print(tournament_found)
+        return tournament_found
 
-    def add_palyers_to_tournament(self):
+    def add_palyers_to_tournament(self) ->list[list[Document]]:
         list_player = []
         find = Query()
         choice = 'Y'
@@ -430,65 +510,69 @@ def update_one_dict(dictid: str, listdata: list, key: str):
     return listdata
 
 
-def display_input_winner(players_opponent):
-    winner = input(f'Please enter the winner of the game {players_opponent[0]} vs '
-                   f'{players_opponent[1]}. '
-                   f'The winner is 1 or 2 or 0 for Draw\n')
-    return winner
+# def display_input_winner(players_opponent):
+#     winner = input(f'Please enter the winner of the game {players_opponent[0]} vs '
+#                    f'{players_opponent[1]}. '
+#                    f'The winner is 1 or 2 or 0 for Draw\n')
+#     return winner
+#
+#
+#     def update_winner_state_match(self,list_opponent_in_match:list[str], rounds:str) :
+#         """
+#         :param list_opponent_in_match: a list contains [every opponents information] in a round
+#         :param rounds: round number
+#         :return: a list contain two list,list one[opponents information],two [winner],list_opponent_in_match is a dict
+#                  contains round number and list player in match with winner
+#         """
+#         for list_paired in total_list_paired:
+#             player1 = self.players.get(int(list_paired[0]))
+#             player2 = self.players.get
+#             print(f'The winner is 1:{self.players.get(int(find_id))}')
+#         # list_player_in_match_with_winner = []
+#         # for players_opponent in list_opponent_in_match[rounds]:
+#         #     winner = display_input_winner(players_opponent)
+#         #     players_opponent.append(winner)
+#         #     list_temporary = [players_opponent[i:i + 2] for i in range(0, len(players_opponent), 2)]
+#         #     list_player_in_match_with_winner.append(list_temporary)
+#         # list_opponent_in_match[rounds] = list_player_in_match_with_winner
+#         # return list_player_in_match_with_winner, list_opponent_in_match
 
 
-def update_winner_state_match(list_opponent_in_match, rounds):
-    """
-    :param list_opponent_in_match: a list contains [every opponents information] in a round
-    :param rounds: round number
-    :return: a list contain two list,list one[opponents information],two [winner],list_opponent_in_match is a dict
-             contains round number and list player in match with winner
-    """
-    list_player_in_match_with_winner = []
-    for players_opponent in list_opponent_in_match[rounds]:
-        winner = display_input_winner(players_opponent)
-        players_opponent.append(winner)
-        list_temporary = [players_opponent[i:i + 2] for i in range(0, len(players_opponent), 2)]
-        list_player_in_match_with_winner.append(list_temporary)
-    list_opponent_in_match[rounds] = list_player_in_match_with_winner
-    return list_player_in_match_with_winner, list_opponent_in_match
-
-
-def update_scores_after_match(list_player_in_match_with_winner, list_player_with_score):
-    """
-    update a list player with scores of every player by using another element [0],[1],[2] in list player in match with
-    winner
-    :param list_player_in_match_with_winner: list opponent with another element winner information
-    :param list_player_with_score: list of total players with theirs scores
-    :return: list of total players with theirs scores
-    """
-    i = 0
-    while i < len(list_player_in_match_with_winner):
-        if list_player_in_match_with_winner[i][1] == list("0"):
-            for player_with_score in list_player_with_score:
-                if player_with_score["player :"] == list_player_in_match_with_winner[i][0][0]:
-                    score = player_with_score["score :"]
-                    score += 0.5
-                    player_with_score.update({"player :": list_player_in_match_with_winner[i][0][0], "score :": score})
-                elif player_with_score["player :"] == list_player_in_match_with_winner[i][0][1]:
-                    score = player_with_score["score :"]
-                    score += 0.5
-                    player_with_score.update({"player :": list_player_in_match_with_winner[i][0][1], "score :": score})
-        elif list_player_in_match_with_winner[i][1] == list("1"):
-            for player_with_score in list_player_with_score:
-                if player_with_score["player :"] == list_player_in_match_with_winner[i][0][0]:
-                    score = player_with_score["score :"]
-                    score += 1
-                    player_with_score.update({"score :": score})
-        else:
-            for player_with_score in list_player_with_score:
-                if player_with_score["player :"] == list_player_in_match_with_winner[i][0][1]:
-                    score = player_with_score["score :"]
-                    score += 1
-                    player_with_score.update({"score :": score})
-
-        i += 1
-    return list_player_with_score  # return a list with [{player:A,score:int},{},{}]
+# def update_scores_after_match(list_player_in_match_with_winner, list_player_with_score):
+#     """
+#     update a list player with scores of every player by using another element [0],[1],[2] in list player in match with
+#     winner
+#     :param list_player_in_match_with_winner: list opponent with another element winner information
+#     :param list_player_with_score: list of total players with theirs scores
+#     :return: list of total players with theirs scores
+#     """
+#     i = 0
+#     while i < len(list_player_in_match_with_winner):
+#         if list_player_in_match_with_winner[i][1] == list("0"):
+#             for player_with_score in list_player_with_score:
+#                 if player_with_score["player :"] == list_player_in_match_with_winner[i][0][0]:
+#                     score = player_with_score["score :"]
+#                     score += 0.5
+#                     player_with_score.update({"player :": list_player_in_match_with_winner[i][0][0], "score :": score})
+#                 elif player_with_score["player :"] == list_player_in_match_with_winner[i][0][1]:
+#                     score = player_with_score["score :"]
+#                     score += 0.5
+#                     player_with_score.update({"player :": list_player_in_match_with_winner[i][0][1], "score :": score})
+#         elif list_player_in_match_with_winner[i][1] == list("1"):
+#             for player_with_score in list_player_with_score:
+#                 if player_with_score["player :"] == list_player_in_match_with_winner[i][0][0]:
+#                     score = player_with_score["score :"]
+#                     score += 1
+#                     player_with_score.update({"score :": score})
+#         else:
+#             for player_with_score in list_player_with_score:
+#                 if player_with_score["player :"] == list_player_in_match_with_winner[i][0][1]:
+#                     score = player_with_score["score :"]
+#                     score += 1
+#                     player_with_score.update({"score :": score})
+#
+#         i += 1
+#     return list_player_with_score  # return a list with [{player:A,score:int},{},{}]
 
 
 def generate_random_opponent_first_match(list_contestants):
@@ -509,13 +593,17 @@ def generate_random_opponent_first_match(list_contestants):
         return list_player_opponent_round
 
 
-def sort_list_of_players_by_scores(list_player_with_score):
-    list_player_sorted_by_scores = sorted(list_player_with_score, key=lambda player_with_score:
-    player_with_score.__getitem__("score :"), reverse=True)
-    return list_player_sorted_by_scores
+# def sort_list_of_players_by_scores(list_player_with_score):
+#     list_player_sorted_by_scores = sorted(list_player_with_score, key=lambda player_with_score:
+#     player_with_score.__getitem__(), reverse=True)
+#     return list_player_sorted_by_scores
 
 
-def generate_next_round_match(list_player_with_score):
-    list_player_next_round = []
-    for player_with_score in list_player_with_score:
-        list_player_next_round.append(player_with_score["player :"])  # a list without scores informations but sorted
+def generate_next_round_match(self,list_player_next_round,list_total):
+    paire = list
+    list_next_round = list
+    for i in len(list_player_next_round)-1 :
+        paire = [list_player_next_round[i],list_player_next_round[i+1]]
+        if paire not in list_total:
+            list_next_round.append = paire
+    return list_next_round
