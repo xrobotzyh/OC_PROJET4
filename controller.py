@@ -325,17 +325,17 @@ class Controller:
             tournament = self.find_tournament_by_id(tournament_id)
             player_list = self.get_player_id_list_from_tournament(tournament)
             list_of_id = Tournament.generate_random_opponent_first_match(player_list)
+
             list_total = list()
             for listid in list_of_id :
-                list_total.append(listid)
-            print(list_total)
-            next_round_score = {}
-            next_round_list_with_score = Tournament.update_winner_state_match(list_total,self.players,next_round_score)
-            print(next_round_list_with_score)
+                list_total.append([listid.player_a,listid.player_b])
+            kk = {1: 0, 2: 0, 3: 0, 4: 0}
+            next_round_list_with_score = Tournament.update_winner_state_match(list_of_id, self.players, kk)
+            # print(next_round_list_with_score)
             next_round_list_sorted = Tournament.sort_list_of_players_by_scores(next_round_list_with_score)
-            print(next_round_list_sorted)
+            # print(next_round_list_sorted)
             list_of_id = list(next_round_list_sorted.keys())
-            print(list_of_id)
+            # print(list_of_id)
             list_next_round,list_total = Tournament.generate_next_round_match(list_of_id,list_total)
             i =0
             while i<=len(list_of_id):

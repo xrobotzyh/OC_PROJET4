@@ -171,27 +171,32 @@ class Tournament:
         self.current_round_matches = self.generate_round_match_pairs()
 
     @staticmethod
-    def generate_random_opponent_first_match(list_contestants):
+    def generate_random_opponent_first_match(list_players):
         """
         for the first round game,we use random function
         :param list_contestants: a list of contestants for the tournaments
         :return: a dictionary key = round information value = list every opponents
         """
+        list_match_round_one = []
+        list_match_current_round = []
 
-        random.shuffle(list_contestants)
-        if (len(list_contestants)) % 2 == 0:
-            list_temporary = [list_contestants[i:i + 2] for i in range(0, len(list_contestants), 2)]
-            list_player_opponent = list_temporary
-
+        random.shuffle(list_players)
+        if (len(list_players)) % 2 == 0:
+            i = 0
+            while i <= len(list_players) // 2:
+                match = Match(list_players[i], list_players[i + 1])
+                list_match_round_one.append(match)
+                list_match_current_round.append([match.player_a, match.player_b])
+                print(f'***pair successful{[list_players[i], list_players[i + 1]]}***\nThe paired player list')
+                print(list_match_current_round)
+                i += 2
         else:
-            list_temporary = [list_contestants[i:i + 2] for i in range(0, len(list_contestants) - 1, 2)]
-            list_temporary.append([list_contestants[-1], None])
-            list_player_opponent = list_temporary
-
-        return list_player_opponent
+            print(f'The number of the players must be even')
+        # print(list_match_round_one)
+        return list_match_round_one
 
     @staticmethod
-    def update_winner_state_match(total_list_paired: list[str], db,dict_player_with_score:list or None):
+    def update_winner_state_match(list_match_round_x: list[Match], db, player_with_score: dict[int:int]):
         """
         :param list_opponent_in_match: a list contains [every opponents information] in a round
         :param rounds: round number
@@ -199,66 +204,71 @@ class Tournament:
                  contains round number and list player in match with winner
         """
         players = db
-        dict_player_with_score = {}
-        score_initial = 0
 
-
-        for list_paired in total_list_paired:
-            player1 = players.get(int(list_paired[0]))
-            player2 = players.get(int(list_paired[1]))
+        for match in list_match_round_x:
+            player1 = players.get(match.player_a)
+            player2 = players.get(match.player_b)
             player1_name = player1.first_name + " " + player1.last_name
             player2_name = player2.first_name + " " + player2.last_name
-            choice = input(f'The winner is 1 for {player1_name}, 2 for {player2_name}, or 3 for Draw\n')
-            if choice == '1':
-                score = score_initial + 1
-                new_dict = {list_paired[0]: score}
-                dict_player_with_score.update(new_dict)
-                new_dict = {list_paired[1]: score_initial}
-                dict_player_with_score.update(new_dict)
-            elif choice == '2':
-                score = score_initial + 1
-                new_dict = {list_paired[1]: score}
-                dict_player_with_score.update(new_dict)
-                new_dict = {list_paired[0]: score_initial}
-                dict_player_with_score.update(new_dict)
+            match.result = input(f'The winner is 1 for {player1_name}, 2 for {player2_name}, or 3 for tie\n')
+            print(f'the match state changed')
+            print(f'{match.get_match(1)}\n')
+            if match.result == '1':
+                score = player_with_score[player1.id] + 1
+                new_dict = {player1.id: score}
+                player_with_score.update(new_dict)
+
+            elif match.result == '2':
+                score = player_with_score[player2.id] + 1
+                new_dict = {player2.id: score}
+                player_with_score.update(new_dict)
             else:
-                score = score_initial + 0.5
-                new_dict = {list_paired[0]: score}
-                dict_player_with_score.update(new_dict)
-                new_dict = {list_paired[1]: score}
-                dict_player_with_score.update(new_dict)
-        return dict_player_with_score
+                score = player_with_score[player1.id] + 0.5
+                new_dict = {player1.id: score}
+                player_with_score.update(new_dict)
+                score = player_with_score[player2.id] + 0.5
+                new_dict = {player2.id: score}
+                player_with_score.update(new_dict)
+            print(f'The list of player before sort by score')
+            print(f'{player_with_score}\n')
+
+        return player_with_score
 
     @staticmethod
     def sort_list_of_players_by_scores(list_player_with_score):
         list_player_sorted_by_scores = dict(
             sorted(list_player_with_score.items(), key=lambda score: score[1], reverse=True))
+        print(f'The player list sorted by score is done')
+        print(f'{list_player_sorted_by_scores}\n')
         return list_player_sorted_by_scores
 
     @staticmethod
     def generate_next_round_match(list_next_round, list_total):
-        all_paire_possibilite = []
+        all_match = []
+        list_match_current_round = []
         j = 1
         r = 1
         while j <= len(list_next_round) - 1:
-            paire = [list_next_round[0], list_next_round[j]]
-            print(paire)
-            if paire != [] and paire not in list_total and paire[::-1] not in list_total:
-                all_paire_possibilite.append(paire)
-                list_total.append(paire)
-                list_next_round.remove(list_next_round[0])
-                list_next_round.remove(list_next_round[j - 1])
-                print(list_next_round)
-                print(list_total)
+            match = Match(list_next_round[0], list_next_round[j])  # TypeError: 'type' object is not subscriptable
+            print(match.get_match(2))
+            if match != [] and [match.player_a, match.player_b] not in list_total and [match.player_b,
+                                                                                       match.player_a] not in list_total:
+                all_match.append(match)
+                list_total.append([match.player_a, match.player_b])
+                list_match_current_round.append([match.player_a, match.player_b])
+                list_next_round.remove(match.player_a)
+                list_next_round.remove(match.player_b)
+                print(f'***pair successful : {[match.player_a, match.player_b]}***\n')
+                # print(f'The paired player list {list_total}\n')
                 j = 1
             else:
                 j += 1
-            r += 1
-            print(f'the {r} try')
-        if not len(all_paire_possibilite):
+            # r += 1
+            # print(f'the {r} try')
+        if not len(all_match):
             print('No match can be distributed')
 
-        print(all_paire_possibilite)
-        print(list_total)
+        print(f'the pair list for next round {list_match_current_round}\n')
+        print(f'The paired player list {list_total}')
 
-        return all_paire_possibilite, list_total
+        return all_match, list_total
