@@ -1,4 +1,6 @@
-from typing import Dict,Any
+from typing import Dict, Any
+
+
 class View:
 
     def __init__(self, header, footer):
@@ -24,6 +26,10 @@ class View:
             value = input(f'Input for {value}\n')
             user_inputs[key] = value
         return user_inputs
+
+    def get_user_input(self, prompt: str) -> str:
+        # Note for improvements: user input validation
+        return input(f'{prompt}\n')
 
     def display_message(self, message):
         print(message)

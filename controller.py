@@ -6,7 +6,7 @@ import random
 from tinydb.table import Document
 
 from view import View
-from model import Player, Tournament, Match,Round
+from model import Player, Tournament, Match, Round
 from tinydb import TinyDB, Query, table
 from tinydb.storages import JSONStorage
 from tinydb_serialization import SerializationMiddleware
@@ -16,7 +16,6 @@ from datetime import datetime
 
 class Controller:
 
-
     def __init__(self):
 
         self.view = View(
@@ -25,15 +24,17 @@ class Controller:
             footer="\n*Select the commande by typing the number\n",
         )
         # self.tournaments: Dict[int, Tournament] = {}  # self.load_tournaments_from_db()
-        self.current_tournament: Optional[Tournament] = None  # self.load_current_tournament_from_db()
         self.db_passed_tournament: Optional[Tournament] = None
         self.db_players = self.reserialization_directory_resources('players')
         self.db_current_tournament = self.reserialization_directory_resources('/data/current_tournament')
-        self.db_passed_tournament= self.reserialization_directory_resources('/data/passed_tournament')
-        self.players: Dict[int, Player] = self.load_players_from_db()
+        self.db_passed_tournament = self.reserialization_directory_resources('/data/passed_tournament')
         # self.tournaments : Dict[int, Tournament] = self.load_tournaments_from_db()
-        self.current_tournament : Dict[int,Tournament] = self.load_current_tournaments_from_db()
-        self.passed_tournament : Dict[int,Tournament] = self.load_passed_tournaments_from_db()
+
+        self.players: Dict[int, Player] = self.load_players_from_db()
+        self.current_tournament: Dict[int, Tournament] = self.load_current_tournaments_from_db()
+        self.passed_tournament: Dict[int, Tournament] = self.load_passed_tournaments_from_db()
+
+        # TODO migrer le round dans le modèle Tournament
         self.db_round = self.reserialization_directory_resources('/data/round')
         self.round = self.load_round_from_db()
 
@@ -54,7 +55,7 @@ class Controller:
     #         for tournament_document in tournaments_document :
     #             tournaments[tournament_document.doc_id] = Tournament.from_db(tournament_document)
     #     return tournaments
-    def load_round_from_db(self) -> dict[int,round]:
+    def load_round_from_db(self) -> dict[int, round]:
         db = self.db_round.all()
         round_documents: List[Document] = db
         rounds = {}
@@ -62,10 +63,11 @@ class Controller:
             rounds[round_document.doc_id] = Round.from_db(player_document)
         return rounds
 
-
     def find_round_by_name(self):
         pass
-    def load_current_tournaments_from_db(self):
+
+    def load_current_tournaments_from_db(self, filename):
+        # TODO regrouper avec load_passed_tournaments et passer le nom de fichier à charger en argument
         db = self.db_current_tournament
         # table_names = db.tables()
         tournaments_document = db.all()
@@ -86,6 +88,7 @@ class Controller:
         for tournament_document in tournaments_document:
             tournaments[tournament_document.doc_id] = Tournament.from_db(tournament_document)
         return tournaments
+
     def display_main_menu(self):
         choices = {
             "0": "Manage Players",
@@ -101,13 +104,12 @@ class Controller:
         elif user_choice == "1":
             self.display_tournament_management_menu()
         elif user_choice == "2":
-            self.view.display_current_tournament_management_menu()
+            self.view.display_reports_menu() # TODO
         elif user_choice == "3":
             self.load_save()
         elif user_choice == "4":
             self.view.display_message("\nSee you next time !\n")
             exit(0)
-
 
     def load_save(self):
         self.__init__()
@@ -130,7 +132,7 @@ class Controller:
         elif user_choice == "3":
             self.display_main_menu()
 
-    def display_update_player_information_menu(self) ->str :
+    def display_update_player_information_menu(self) -> str:
         choices = {
             "0": "Edit the player's first name",
             "1": "Edit the player's last name",
@@ -138,21 +140,17 @@ class Controller:
             "3": "Edit the player's club id",
         }
         user_choice = self.view.display_menu(choices)  # show the main menu
+        value = ''
         if user_choice == "0":
             value = 'first name'
-            return value
         elif user_choice == "1":
             value = 'last name'
-            return value
         elif user_choice == "2":
             value = 'birthday DD/MM/YYYY'
-            return value
         elif user_choice == "3":
             value = 'club id'
-            return value
-
-
-    def display_update_tournament_information_menu(self) ->str :
+        return value
+    def display_update_tournament_information_menu(self) -> str:
         choices = {
             "0": "Edit the tournament's name",
             "1": "Edit the tournament's location",
@@ -187,7 +185,6 @@ class Controller:
         # else :
         #     self.view.display_message('Please entre the number 1-6')
 
-
     def create_new_player(self):
         # Create player from user inputs
         input_fields = Player.INPUT_FIELDS
@@ -204,17 +201,17 @@ class Controller:
 
     def update_player_by_id(self):
         db = self.db_players
-        find_id = input("\n### Enter the id ###\n")
+        find_id = self.view.get_user_input("\n### Enter the id ###\n")
+        # TODO cleanup du controller, il ne doit pas gérer les entrées / sorties, c'est le role de la view
         player = self.players.get(int(find_id))
         if player:
             change_value = self.display_update_player_information_menu()
             new_value = input(f'please enter the new {change_value}\n')
-            db.update({change_value:new_value}, doc_ids=[player.id])
+            db.update({change_value: new_value}, doc_ids=[player.id])
             print("Player updated successfully!")
         else:
             print(f"No such a player")
         self.display_player_management_menu()
-
 
     def display_update_player_menu(self):
         choices = {
@@ -248,7 +245,6 @@ class Controller:
                     self.view.display_message(player_msg)
         self.display_player_management_menu()
 
-
     def find_player_id_by_last_name(self):
         db = self.db_players
         find = Query()
@@ -263,7 +259,6 @@ class Controller:
                     player_msg = (f"{field} : {value}, ")
                     self.view.display_message(player_msg)
         self.display_player_management_menu()
-
 
     def display_players(self):
         for player_id, player in self.players.items():
@@ -297,7 +292,7 @@ class Controller:
             db = self.db_passed_tournament
             # table_tournament = db.table(user_inputs['name'])
             db.insert(Tournament.as_dict(tournament))
-        else :
+        else:
             # tournament['id'] = self.generate_current_tournament_id()
             db = self.db_current_tournament
             # table_tournament = db.table(user_inputs['name'])
@@ -333,34 +328,40 @@ class Controller:
         }
         user_choice = self.view.display_menu(choices)  # show the main menu
         if user_choice == "0":
-            tournament = self.find_tournament_by_id(tournament_id)
-            player_list = self.get_player_id_list_from_tournament(tournament)
-            list_of_id = Tournament.generate_random_opponent_first_match(player_list)
+            # tester si tous les scores des matchs sont rentrés
+            # si oui, alors generation du prochain round
+            # si non, alors on affiche l'entrée des scores et on genere ensuite le prochain round
+            self.current_tournament.generate_next_round()
 
-
-            list_total = list()
-            for listid in list_of_id :
-                list_total.append([listid.player_a,listid.player_b])
-            kk = {1: 0, 2: 0, 3: 0, 4: 0}
-            next_round_list_with_score = Tournament.update_winner_state_match(list_of_id, self.players, kk)
-            # print(next_round_list_with_score)
-            next_round_list_sorted = Tournament.sort_list_of_players_by_scores(next_round_list_with_score)
-            # print(next_round_list_sorted)
-            list_of_id = list(next_round_list_sorted.keys())
-            # print(list_of_id)
-            list_next_round,list_total = Tournament.generate_next_round_match(list_of_id,list_total)
-            i =0
-            while i<=len(list_of_id):
-                next_round_list_with_score = Tournament.update_winner_state_match(list_next_round, self.players,next_round_list_with_score)
-                print(next_round_list_with_score)
-                next_round_list_sorted = Tournament.sort_list_of_players_by_scores(next_round_list_with_score)
-                list_of_id = list(next_round_list_sorted.keys())
-                list_next_round, list_total = Tournament.generate_next_round_match(list_of_id, list_total)
-                if not list_next_round:
-                    break
-                else:
-                    i += 1
-                print(next_round_list_sorted)
+            # TODO déplacer ce code dans le modèle
+            # tournament = self.find_tournament_by_id(tournament_id)
+            # player_list = self.get_player_id_list_from_tournament(tournament)
+            # list_of_id = Tournament.generate_random_opponent_first_match(player_list)
+            #
+            # list_total = list()
+            # for listid in list_of_id:
+            #     list_total.append([listid.player_a, listid.player_b])
+            # kk = {1: 0, 2: 0, 3: 0, 4: 0}
+            # next_round_list_with_score = Tournament.update_winner_state_match(list_of_id, self.players, kk)
+            # # print(next_round_list_with_score)
+            # next_round_list_sorted = Tournament.sort_list_of_players_by_scores(next_round_list_with_score)
+            # # print(next_round_list_sorted)
+            # list_of_id = list(next_round_list_sorted.keys())
+            # # print(list_of_id)
+            # list_next_round, list_total = Tournament.generate_next_round_match(list_of_id, list_total)
+            # i = 0
+            # while i <= len(list_of_id):
+            #     next_round_list_with_score = Tournament.update_winner_state_match(list_next_round, self.players,
+            #                                                                       next_round_list_with_score)
+            #     print(next_round_list_with_score)
+            #     next_round_list_sorted = Tournament.sort_list_of_players_by_scores(next_round_list_with_score)
+            #     list_of_id = list(next_round_list_sorted.keys())
+            #     list_next_round, list_total = Tournament.generate_next_round_match(list_of_id, list_total)
+            #     if not list_next_round:
+            #         break
+            #     else:
+            #         i += 1
+            #     print(next_round_list_sorted)
             # self.Tournament.generate_random_opponent_first_match()
             # self.display_update_tournament_by_id(tournaments)
         elif user_choice == "1":
@@ -370,7 +371,8 @@ class Controller:
         elif user_choice == "3":
             self.display_tournament_management_menu()
 
-    def get_player_id_list_from_tournament(self,tournament:Tournament)->list[str]:
+    def get_player_id_list_from_tournament(self, tournament: Tournament) -> list[str]:
+        # FIXME a supprimer
         list_player_id = []
         list_player_in_tournament = tournament['List of players participate']
         for sublist in list_player_in_tournament:
@@ -378,7 +380,7 @@ class Controller:
                 list_player_id.append(player['id'])
         return list_player_id
 
-    def update_information_of_a_tournament(self, find_id:str):
+    def update_information_of_a_tournament(self, find_id: str):
         db = self.db_current_tournament
         tournament = self.find_tournament_by_id(find_id)
         if tournament is not None:
@@ -388,11 +390,11 @@ class Controller:
                 print(f'The player in the tournaments are : {players}')
                 players = self.add_palyers_to_tournament()
                 db.update({change_value: players}, doc_ids=[int(find_id)])
-            elif change_value in ('First match date DD/MM/YYYY','Last match date DD/MM/YYYY'):
+            elif change_value in ('First match date DD/MM/YYYY', 'Last match date DD/MM/YYYY'):
                 new_value = input(f'please enter the new {change_value}\n')
                 new_value_date = datetime.strptime(new_value, "%d/%m/%Y")
                 db.update({change_value: new_value_date}, doc_ids=[int(find_id)])
-            else :
+            else:
                 new_value = input(f'please enter the new {change_value}\n')
                 db.update({change_value: new_value}, doc_ids=[int(find_id)])
             print("Tournament updated successfully!")
@@ -400,27 +402,26 @@ class Controller:
 
     def display_the_current_tournament(self):
         tournaments = self.current_tournament
-        if len(tournaments) != 0 :
+        if len(tournaments) != 0:
             for tournament_number, tournament in tournaments.items():
                 self.view.display_message(f'\n### the list of tournament id {tournament_number} ####')
                 self.view.display_dicts(tournament.as_dict())
-        else :
+        else:
             self.view.display_message(f'There is no current tournament')
         self.display_tournament_management_menu()
-
 
     def display_finished_tournament(self):
         tournaments = self.passed_tournament
         print(len(tournaments))
-        if len(tournaments) != 0 :
-            for tournament_number,tournament in tournaments.items():
+        if len(tournaments) != 0:
+            for tournament_number, tournament in tournaments.items():
                 self.view.display_message(f'\n### the list of tournament id {tournament_number} ####')
                 self.view.display_dicts(tournament.as_dict())
-        else :
+        else:
             self.view.display_message(f'There is no passed tournament')
         self.display_tournament_management_menu()
 
-    def load_tournament_by_id(self, tournament_id:str) :
+    def load_tournament_by_id(self, tournament_id: str):
         tournament_list = []
         tournament_list.append(self.find_tournament_by_id("tournament id", int(tournament_id)))
         if not tournament_list:
@@ -455,7 +456,7 @@ class Controller:
     def find_tournament_by_id(self, search_key: str) -> Optional[Tournament]:
         tournament = self.current_tournament
         tournament_found = None
-        for tournament_id,tournament in tournament.items():
+        for tournament_id, tournament in tournament.items():
             if int(search_key) == tournament_id:
                 tournament_found = tournament.as_dict()
                 self.view.display_message('The tournament is found !')
@@ -465,7 +466,7 @@ class Controller:
         # print(tournament_found)
         return tournament_found
 
-    def add_palyers_to_tournament(self) ->list[list[Document]]:
+    def add_palyers_to_tournament(self) -> list[list[Document]]:
         list_player = []
         find = Query()
         choice = 'Y'
@@ -501,7 +502,6 @@ class Controller:
         filename = Path("resources/" + str(filename) + '.json')
         db = TinyDB(filename, storage=serialization)
         return db
-
 
 # def create_a_new_dict(listdata: list, new_data: dict):
 #     # a function that will update a list of players after input manipulations by users
@@ -587,13 +587,7 @@ class Controller:
 #     return list_player_with_score  # return a list with [{player:A,score:int},{},{}]
 
 
-
-
-
 # def sort_list_of_players_by_scores(list_player_with_score):
 #     list_player_sorted_by_scores = sorted(list_player_with_score, key=lambda player_with_score:
 #     player_with_score.__getitem__(), reverse=True)
 #     return list_player_sorted_by_scores
-
-
-
