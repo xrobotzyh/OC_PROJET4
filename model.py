@@ -63,19 +63,56 @@ class Player:
 
 class Match:
     def __init__(self, player_a: Player, player_b: Player):
+        self.match_round = None
         self.player_a = player_a
         self.player_b = player_b
         self.result = None
 
-    def get_match(self, round):
-        self.round = round
+    def as_match(self, match_round):
+        self.match_round = match_round
         match = {
-            "round :": self.round,
+            "round :": self.match_round,
             "Player A :": self.player_a,
             "Player B :": self.player_b,
             "Result :": self.result
         }
         return match
+
+
+class Round:
+
+    def __init__(self, tournament_name:str, round_number:int, match_list:list[int]):
+        self.tournament_name = tournament_name
+        self.round_number = round_number
+        self.match_list = match_list
+        self.start_time = datetime.now()
+        self.end_time = None
+
+    def as_round(self):
+        round_start_time = datetime.strftime(self.start_time, "%d/%m/%Y")
+        if not self.end_time:
+            round_end_time = datetime.strftime(self.end_time, "%d/%m/%Y")
+        else:
+            round_end_time = None
+        match_round = {
+            'tournament_name': self.tournament_name,
+            'round number': self.round_number,
+            'match': self.match_list,
+            'next round begin at': round_start_time,
+            "next round end at": round_end_time,
+        }
+        return match_round
+
+    def from_db(self):
+        start_time = datetime.strftime(document['next round begin at'],"%d/%m/%Y")
+        end_time = datetime.strftime(document['next round end at'],"%d/%m/%Y")
+        return cls(
+            tournament_name = document['tournament_name'],
+            round_number = document['round number'],
+            match_list = document['match'],
+            start_time=start_time,
+            end_time=end_time,
+            )
 
 
 class Tournament:
@@ -88,14 +125,14 @@ class Tournament:
         'total round number': "total tournaments round number,4 by default",
     }
 
-    def __init__(self, name: str, location: str, start_date: datetime, end_date: datetime, number_round: int,
+    def __init__(self, name: str, location: str, start_date: datetime, end_date: datetime, round_number: int,
                  description: str, total_number_round: int, player: list = None):
         # self.ids = ids
         self.name = name
         self.location = location
         self.start_date = start_date
         self.end_date = end_date
-        self.number_round = number_round
+        self.number_round = round_number
         self.description = description
         self.total_number_round = total_number_round
         self.players = player
@@ -120,7 +157,7 @@ class Tournament:
             location=values['location'],
             start_date=start_date,
             end_date=end_date,
-            number_round=0,
+            round_number=0,
             description=values['tournament description'],
             total_number_round=4,
             player=player,
@@ -128,15 +165,15 @@ class Tournament:
 
     @classmethod
     def from_db(cls, document: Dict[str, Any]):
-        # start_date = datetime.strftime(document['First match date DD/MM/YYYY'], "%d/%m/%Y")
-        # end_date = datetime.strptime(document['Last match date DD/MM/YYYY'], "%d/%m/%Y")
+        start_date = datetime.strftime(document['First match date DD/MM/YYYY'], "%d/%m/%Y")
+        end_date = datetime.strftime(document['Last match date DD/MM/YYYY'], "%d/%m/%Y")
         return cls(
             # ids=document['tournament id'],
             name=document['Name'],
             location=document['Location'],
-            start_date=document['First match date DD/MM/YYYY'],
-            end_date=document['Last match date DD/MM/YYYY'],
-            number_round=0,
+            start_date=start_date,
+            end_date=end_date,
+            round_number=0,
             description=document['Descrition of the tournament'],
             total_number_round=4,
             player=document['List of players participate'],
@@ -212,7 +249,7 @@ class Tournament:
             player2_name = player2.first_name + " " + player2.last_name
             match.result = input(f'The winner is 1 for {player1_name}, 2 for {player2_name}, or 3 for tie\n')
             print(f'the match state changed')
-            print(f'{match.get_match(1)}\n')
+            print(f'{match.as_match(1)}\n')
             if match.result == '1':
                 score = player_with_score[player1.id] + 1
                 new_dict = {player1.id: score}
@@ -250,7 +287,7 @@ class Tournament:
         r = 1
         while j <= len(list_next_round) - 1:
             match = Match(list_next_round[0], list_next_round[j])  # TypeError: 'type' object is not subscriptable
-            print(match.get_match(2))
+            print(match.as_match(2))
             if match != [] and [match.player_a, match.player_b] not in list_total and [match.player_b,
                                                                                        match.player_a] not in list_total:
                 all_match.append(match)

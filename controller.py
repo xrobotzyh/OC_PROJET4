@@ -6,7 +6,7 @@ import random
 from tinydb.table import Document
 
 from view import View
-from model import Player, Tournament, Match
+from model import Player, Tournament, Match,Round
 from tinydb import TinyDB, Query, table
 from tinydb.storages import JSONStorage
 from tinydb_serialization import SerializationMiddleware
@@ -24,16 +24,18 @@ class Controller:
                    "|\n---------------------------------------- \n",
             footer="\n*Select the commande by typing the number\n",
         )
-        self.tournaments: Dict[int, Tournament] = {}  # self.load_tournaments_from_db()
+        # self.tournaments: Dict[int, Tournament] = {}  # self.load_tournaments_from_db()
         self.current_tournament: Optional[Tournament] = None  # self.load_current_tournament_from_db()
         self.db_passed_tournament: Optional[Tournament] = None
         self.db_players = self.reserialization_directory_resources('players')
         self.db_current_tournament = self.reserialization_directory_resources('/data/current_tournament')
         self.db_passed_tournament= self.reserialization_directory_resources('/data/passed_tournament')
         self.players: Dict[int, Player] = self.load_players_from_db()
-        self.tournaments : Dict[int, Tournament] = self.load_tournaments_from_db()
+        # self.tournaments : Dict[int, Tournament] = self.load_tournaments_from_db()
         self.current_tournament : Dict[int,Tournament] = self.load_current_tournaments_from_db()
         self.passed_tournament : Dict[int,Tournament] = self.load_passed_tournaments_from_db()
+        self.db_round = self.reserialization_directory_resources('/data/round')
+        self.round = self.load_round_from_db()
 
     def load_players_from_db(self) -> Dict[int, Player]:
         db = self.db_players.all()
@@ -43,17 +45,26 @@ class Controller:
             players[player_document.doc_id] = Player.from_db(player_document)
         return players
 
-    def load_tournaments_from_db(self) -> Dict[int,Tournament]:
-        db = self.db_current_tournament
-        table_names = db.tables()
-        tournaments = {}
-        for table_name in table_names:
-            tournaments_document = db.table(table_name).all()
-            for tournament_document in tournaments_document :
-                tournaments[tournament_document.doc_id] = Tournament.from_db(tournament_document)
-        return tournaments
+    # def load_tournaments_from_db(self) -> Dict[int,Tournament]:
+    #     db = self.db_current_tournament
+    #     table_names = db.tables()
+    #     tournaments = {}
+    #     for table_name in table_names:
+    #         tournaments_document = db.table(table_name).all()
+    #         for tournament_document in tournaments_document :
+    #             tournaments[tournament_document.doc_id] = Tournament.from_db(tournament_document)
+    #     return tournaments
+    def load_round_from_db(self) -> dict[int,round]:
+        db = self.db_round.all()
+        round_documents: List[Document] = db
+        rounds = {}
+        for round_document in round_documents:
+            rounds[round_document.doc_id] = Round.from_db(player_document)
+        return rounds
 
 
+    def find_round_by_name(self):
+        pass
     def load_current_tournaments_from_db(self):
         db = self.db_current_tournament
         # table_names = db.tables()
@@ -326,6 +337,7 @@ class Controller:
             player_list = self.get_player_id_list_from_tournament(tournament)
             list_of_id = Tournament.generate_random_opponent_first_match(player_list)
 
+
             list_total = list()
             for listid in list_of_id :
                 list_total.append([listid.player_a,listid.player_b])
@@ -491,23 +503,23 @@ class Controller:
         return db
 
 
-def create_a_new_dict(listdata: list, new_data: dict):
-    # a function that will update a list of players after input manipulations by users
-    if listdata is None:
-        listdata = []
-    listdata.append(update_dicts(new_data))
-    return listdata
+# def create_a_new_dict(listdata: list, new_data: dict):
+#     # a function that will update a list of players after input manipulations by users
+#     if listdata is None:
+#         listdata = []
+#     listdata.append(update_dicts(new_data))
+#     return listdata
 
 
-def update_one_dict(dictid: str, listdata: list, key: str):
-    is_in = False
-    for i, data in enumerate(listdata):
-        if player[key] == dictid:
-            listdata[i] = update_dicts(player)
-            is_in = True
-    if is_in == False:
-        print(f"There is no such {dictid}")
-    return listdata
+# def update_one_dict(dictid: str, listdata: list, key: str):
+#     is_in = False
+#     for i, data in enumerate(listdata):
+#         if player[key] == dictid:
+#             listdata[i] = update_dicts(player)
+#             is_in = True
+#     if is_in == False:
+#         print(f"There is no such {dictid}")
+#     return listdata
 
 
 # def display_input_winner(players_opponent):
@@ -575,22 +587,7 @@ def update_one_dict(dictid: str, listdata: list, key: str):
 #     return list_player_with_score  # return a list with [{player:A,score:int},{},{}]
 
 
-def generate_random_opponent_first_match(list_contestants):
-    """
-    for the first round game,we use random function
-    :param list_contestants: a list of contestants for the tournaments
-    :return: a dictionary key = round information value = list every opponents
-    """
-    random.shuffle(list_contestants)
-    if (len(list_contestants)) % 2 == 0:
-        list_temporary = [list_contestants[i:i + 2] for i in range(0, len(list_contestants), 2)]
-        list_player_opponent_round = {1: list_temporary}
-        return list_player_opponent_round
-    else:
-        list_temporary = [list_contestants[i:i + 2] for i in range(0, len(list_contestants) - 1, 2)]
-        list_temporary.append([list_contestants[-1], None])
-        list_player_opponent_round = {"1": list_temporary}
-        return list_player_opponent_round
+
 
 
 # def sort_list_of_players_by_scores(list_player_with_score):
@@ -599,11 +596,4 @@ def generate_random_opponent_first_match(list_contestants):
 #     return list_player_sorted_by_scores
 
 
-def generate_next_round_match(self,list_player_next_round,list_total):
-    paire = list
-    list_next_round = list
-    for i in len(list_player_next_round)-1 :
-        paire = [list_player_next_round[i],list_player_next_round[i+1]]
-        if paire not in list_total:
-            list_next_round.append = paire
-    return list_next_round
+
