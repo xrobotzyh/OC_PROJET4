@@ -13,7 +13,6 @@ class Player:
     }
 
     def __init__(self, id: int, first_name: str, last_name: str, birthday: datetime, club_id: str = "AB12345"):
-        self.score = 0
         self.id = id or 1
         self.first_name = first_name
         self.last_name = last_name
@@ -53,12 +52,6 @@ class Player:
         }
         return player
 
-    def get_player_with_score(self):
-        player_with_score = {
-            "player :": self.as_dict(),
-            "score :": self.score
-        }
-        return player_with_score
 
 
 class Match:
@@ -78,41 +71,6 @@ class Match:
         }
         return match
 
-
-class Round:
-
-    def __init__(self, tournament_name:str, round_number:int, match_list:list[int]):
-        self.tournament_name = tournament_name
-        self.round_number = round_number
-        self.match_list = match_list
-        self.start_time = datetime.now()
-        self.end_time = None
-
-    def as_round(self):
-        round_start_time = datetime.strftime(self.start_time, "%d/%m/%Y")
-        if not self.end_time:
-            round_end_time = datetime.strftime(self.end_time, "%d/%m/%Y")
-        else:
-            round_end_time = None
-        match_round = {
-            'tournament_name': self.tournament_name,
-            'round number': self.round_number,
-            'match': self.match_list,
-            'next round begin at': round_start_time,
-            "next round end at": round_end_time,
-        }
-        return match_round
-
-    def from_db(self):
-        start_time = datetime.strftime(document['next round begin at'],"%d/%m/%Y")
-        end_time = datetime.strftime(document['next round end at'],"%d/%m/%Y")
-        return cls(
-            tournament_name = document['tournament_name'],
-            round_number = document['round number'],
-            match_list = document['match'],
-            start_time=start_time,
-            end_time=end_time,
-            )
 
 
 class Tournament:
