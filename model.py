@@ -81,8 +81,7 @@ class Match:
 
 class Round:
 
-    def __init__(self, tournament_name:str, round_number:int, match_list:list[int]):
-        self.tournament_name = tournament_name
+    def __init__(self, round_number: int, match_list: list[int]):
         self.round_number = round_number
         self.match_list = match_list
         self.start_time = datetime.now()
@@ -104,15 +103,15 @@ class Round:
         return match_round
 
     def from_db(self):
-        start_time = datetime.strftime(document['next round begin at'],"%d/%m/%Y")
-        end_time = datetime.strftime(document['next round end at'],"%d/%m/%Y")
+        start_time = datetime.strftime(document['next round begin at'], "%d/%m/%Y")
+        end_time = datetime.strftime(document['next round end at'], "%d/%m/%Y")
         return cls(
-            tournament_name = document['tournament_name'],
-            round_number = document['round number'],
-            match_list = document['match'],
+            tournament_name=document['tournament_name'],
+            round_number=document['round number'],
+            match_list=document['match'],
             start_time=start_time,
             end_time=end_time,
-            )
+        )
 
 
 class Tournament:
@@ -126,7 +125,7 @@ class Tournament:
     }
 
     def __init__(self, name: str, location: str, start_date: datetime, end_date: datetime, round_number: int,
-                 description: str, total_number_round: int, player: list = None):
+                 description: str, total_number_round: int, players: list = None):
         # self.ids = ids
         self.name = name
         self.location = location
@@ -135,18 +134,18 @@ class Tournament:
         self.number_round = round_number
         self.description = description
         self.total_number_round = total_number_round
-        self.players = player
-
-        # self.current_round = 0
-        # self.current_round_matches = []
-        # self.rounds = []
-        # self.players_scores = {}
+        self.players: List[Player] = players
+        self.current_round: int = round_number
+        self.rounds: List[Round] = []
+        # TODO initialiser la map avec les identifiants des joueurs, regarder la fonction dict.from_keys() ou quelque chose du genre
+        self.players_scores: Dict[int, float] = {}  # map of player id: score in the tournament
 
     def __str__(self):
         return f"Tournament: name={self.name}, location={self.location}, start_date={self.start_date}, end_date={self.end_date}, players={self.players}, rounds={self.number_round}"
 
+
     @classmethod
-    def from_values(cls, values: Dict[str, Any]):
+    def from_values(cls, values: Dict[str, Any]) -> 'Tournament':
         start_date = datetime.strptime(values['start date'], "%d/%m/%Y")
         end_date = datetime.strptime(values['end date'], "%d/%m/%Y")
         # tournament_id = values['id']
@@ -160,13 +159,17 @@ class Tournament:
             round_number=0,
             description=values['tournament description'],
             total_number_round=4,
-            player=player,
+            players=player,
         )
 
     @classmethod
-    def from_db(cls, document: Dict[str, Any]):
+    def from_db(cls, document: Dict[str, Any], players: Dict[int, Player]) -> 'Tournament':
         start_date = datetime.strftime(document['First match date DD/MM/YYYY'], "%d/%m/%Y")
         end_date = datetime.strftime(document['Last match date DD/MM/YYYY'], "%d/%m/%Y")
+
+        player_ids: List[int] = document['player_ids']
+        tournament_players: List[Player] = [players[player_id] for player_id in player_ids]
+
         return cls(
             # ids=document['tournament id'],
             name=document['Name'],
@@ -176,8 +179,15 @@ class Tournament:
             round_number=0,
             description=document['Descrition of the tournament'],
             total_number_round=4,
-            player=document['List of players participate'],
+            players=tournament_players,
         )
+
+    def to_json(self):
+        # TODO à remplir, le but est d'avoir une structure pour la DB et pas pour l'affichage.
+        # À lier avec la fonction from_db pour les clefs de document
+        json_data = {}
+        json_data['player_ids'] = [player.id for player in self.players]
+        return json_data
 
     def as_dict(self):
         tournament = {
@@ -193,21 +203,22 @@ class Tournament:
         }
         return tournament
 
-    @staticmethod
-    def is_finished(end_date):
+    def is_finished(self):
         now = datetime.now()
-        return end_date <= now
+        return self.end_date <= now
 
     def start(self):
-        self.current_round_matches = self.generate_random_opponent_first_match()
+        new_round: Round = self.generate_first_round()
+        self.rounds.append(new_round)
         self.players_scores = ...
 
     def go_to_next_round(self):
-        self.rounds.append(self.current_round_matches)
+        # TODO m'appeler depuis le controller
         self.current_round += 1
-        self.current_round_matches = self.generate_round_match_pairs()
+        new_round: Round = self.generate_next_round()
+        self.rounds.append(new_round)
+        if self.current_round == self.number_round
 
-    @staticmethod
     def generate_random_opponent_first_match(list_players):
         """
         for the first round game,we use random function
@@ -232,7 +243,6 @@ class Tournament:
         # print(list_match_round_one)
         return list_match_round_one
 
-    @staticmethod
     def update_winner_state_match(list_match_round_x: list[Match], db, player_with_score: dict[int:int]):
         """
         :param list_opponent_in_match: a list contains [every opponents information] in a round
@@ -271,7 +281,6 @@ class Tournament:
 
         return player_with_score
 
-    @staticmethod
     def sort_list_of_players_by_scores(list_player_with_score):
         list_player_sorted_by_scores = dict(
             sorted(list_player_with_score.items(), key=lambda score: score[1], reverse=True))
@@ -279,9 +288,8 @@ class Tournament:
         print(f'{list_player_sorted_by_scores}\n')
         return list_player_sorted_by_scores
 
-    @staticmethod
     def generate_next_round_match(list_next_round, list_total):
-        all_match = []
+        round_matches = []
         list_match_current_round = []
         j = 1
         r = 1
@@ -290,7 +298,7 @@ class Tournament:
             print(match.as_match(2))
             if match != [] and [match.player_a, match.player_b] not in list_total and [match.player_b,
                                                                                        match.player_a] not in list_total:
-                all_match.append(match)
+                round_matches.append(match)
                 list_total.append([match.player_a, match.player_b])
                 list_match_current_round.append([match.player_a, match.player_b])
                 list_next_round.remove(match.player_a)
@@ -302,10 +310,14 @@ class Tournament:
                 j += 1
             # r += 1
             # print(f'the {r} try')
-        if not len(all_match):
+        if not len(round_matches):
             print('No match can be distributed')
 
         print(f'the pair list for next round {list_match_current_round}\n')
         print(f'The paired player list {list_total}')
 
-        return all_match, list_total
+        return round_matches, list_total
+
+    def generate_next_round(self):
+        self.rounds
+        self.players
