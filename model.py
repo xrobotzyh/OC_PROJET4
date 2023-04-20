@@ -98,12 +98,14 @@ class Tournament:
         self.total_number_round = total_number_round
         self.players: List[Player] = players
         # initialiser la map avec les identifiants des joueurs, regarder la fonction dict.from_keys() ou quelque chose du genre
-        self.players_scores: Dict[int, float] = {player[0]['id'] : 0 for player in                            #player[0]['id']
+        self.players_scores: Dict[int, float] = {player[0]['id']: 0 for player in  # player[0]['id']
                                                  self.players}  # map of player id: score in the tournament
         self.player_ids: List[int] = [player[0]['id'] for player in self.players]
         self.total_match = []
-        self.match_in_round: Dict[int,[Match]] = {self.current_round_number: []}
-        self.round_time : Dict[int,str] = {self.current_round_number:''}
+        self.match_in_round: Dict[int, [Match]] = {self.current_round_number: []}
+        self.round_time_start: [Dict[int, str]] = {self.current_round_number: ''}
+        self.round_time_end: [Dict[int, str]] = {self.current_round_number: ''}
+
     # def __str__(self):
     #     return f"Tournament: name={self.name}, location={self.location}, start_date={self.start_date}, end_date={self.end_date}, players={self.players}, rounds={self.number_round}"
 
@@ -157,7 +159,9 @@ class Tournament:
             'current round number': self.current_round_number,
             'player scores': self.players_scores,
             'total match': self.total_match,
-            'match by round': self.match_in_round
+            'match by round': self.match_in_round,
+            'round start time':self.round_time_start,
+            'round end time':self.round_time_end,
         }
         return json_data
 
@@ -213,7 +217,7 @@ class Tournament:
             while i < len(self.players):
                 match = Match(self.players[i], self.players[i + 1])
                 current_round_matchs.append(match)
-                self.total_match.append([match.player_a,match.player_b])
+                self.total_match.append([match.player_a, match.player_b])
                 name_player1 = match.as_match().get("Player A :")[0].get("first name") + " " + \
                                match.as_match().get("Player A :")[0].get("last name")
                 name_player2 = match.as_match().get("Player B :")[0].get("first name") + " " + \
@@ -226,10 +230,10 @@ class Tournament:
         # print(list_match_round_one)
         new_dict = {self.current_round_number: current_round_matchs}
         self.match_in_round.update(new_dict)
-        time = datetime.strftime(datetime.now(), "%d/%m/%Y")
-        self.round_time = {self.current_round_number: time}
+        round_start_time = datetime.strftime(datetime.now(), "%d/%m/%Y")
+        self.round_time_start.update({self.current_round_number: round_start_time})
         self.start_date = datetime.now()
-        print(self.round_time)
+        print(self.round_time_start)
         # print(self.players)
 
     def update_winner_state_match(self):
@@ -239,7 +243,7 @@ class Tournament:
         :return: a list contain two list,list one[opponents information],two [winner],list_opponent_in_match is a dict
                  contains round number and list player in match with winner
         """
-        round_number = self.current_round_number-1
+        round_number = self.current_round_number - 1
         current_round_matchs = self.match_in_round[round_number]
         for match in current_round_matchs:
             name_player1 = match.as_match().get("Player A :")[0].get("first name") + " " + \
@@ -269,6 +273,8 @@ class Tournament:
                 self.players_scores.update(new_dict)
             # print(f'The list of player before sort by score')
             # print(f'{self.players_scores}\n')
+        round_end_time = datetime.strftime(datetime.now(), "%d/%m/%Y")
+        self.round_time_end.update({self.current_round_number: round_end_time})
         self.sort_list_of_players_by_scores()
 
     def sort_list_of_players_by_scores(self):
@@ -292,11 +298,12 @@ class Tournament:
         match_number = 0
         while i <= len(list_next_round) - 1:
             match = Match(list_next_round[0], list_next_round[i])
-            if match != [] and [match.player_a, match.player_b] not in self.total_match and [match.player_b, match.player_a] not in self.total_match:
+            if match != [] and [match.player_a, match.player_b] not in self.total_match and [match.player_b,
+                                                                                             match.player_a] not in self.total_match:
 
                 match_number += 1
                 current_round_matchs.append(match)
-                self.total_match.append([match.player_a,match.player_b])
+                self.total_match.append([match.player_a, match.player_b])
                 list_next_round.remove(match.player_a)
                 list_next_round.remove(match.player_b)
                 name_player1 = match.player_a[0].get("first name") + " " + \
@@ -312,18 +319,15 @@ class Tournament:
         if current_round_matchs:
             new_dict = {self.current_round_number: current_round_matchs}
             self.match_in_round.update(new_dict)
+            round_start_time = datetime.strftime(datetime.now(), "%d/%m/%Y")
+            self.round_time_start.update({self.current_round_number: round_start_time})
             self.current_round_number += 1
-            time = datetime.strftime(datetime.now(),"%d/%m/%Y")
-            print(time)
-            self.round_time = {self.current_round_number:time}
-            print(self.round_time)
-        else :
-            print('No possible to distribute match,Match is finished!')
+            print(self.round_time_start)
+        else:
+            print('It\'s not possible to distribute match,Match is finished!')
             self.end_date = datetime.now
         # print(self.match_in_round)
         # for match in self.total_match:
         #     print(match.as_match())
         # print(f'the pair list for next round {current_round_matchs}\n')
         # print(f'The paired player list {self.total_match}')
-
-

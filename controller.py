@@ -89,6 +89,8 @@ class Controller:
             exit(0)
 
     def load_save(self):
+        self.db_passed_tournament.write_back()
+        self.db_current_tournament.write_back()
         self.__init__()
         self.display_main_menu()
 
