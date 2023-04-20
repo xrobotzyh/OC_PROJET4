@@ -89,8 +89,13 @@ class Controller:
             exit(0)
 
     def load_save(self):
-        self.db_passed_tournament.write_back()
-        self.db_current_tournament.write_back()
+        for id_tournament, tournament in self.current_tournament.items():
+            self.db_current_tournament.update(tournament.to_db(),doc_ids=[id_tournament])
+        # for document in self.db_current_tournament:
+        #     print(document.doc_id)
+        # self.db_passed_tournament.update(self.passed_tournament, doc_ids=self.db_passed_tournament.all_ids())
+        #     self.db_current_tournament.update(self.current_tournament, doc_ids=[1,2])
+        # self.db_current_tournament.write_back()
         self.__init__()
         self.display_main_menu()
 
@@ -318,12 +323,14 @@ class Controller:
                 if str(id_tournament) == tournament_id:
                     if tournament.current_round_number == 1:
                         tournament.start()
+
                     else:
                         if not tournament.match_in_round[tournament.current_round_number-1][1].result:
                             self.view.display_message(f'Please enter the winner information for last round!')
                             break
                         else:
                             tournament.go_to_next_round()
+                            new_tournament =  tournament.to_db()
                     self.view.display_message(f'Round {tournament.current_round_number-1} is above')
             self.display_update_tournament_by_id(tournament_id)
         elif user_choice == "1":

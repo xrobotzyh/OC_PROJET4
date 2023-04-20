@@ -147,6 +147,16 @@ class Tournament:
     def to_db(self):
         # TODO à remplir, le but est d'avoir une structure pour la DB et pas pour l'affichage.
         # À lier avec la fonction from_db pour les clefs de document
+        total_match = []
+        match_in_round = []
+        matchs_in_round = {}
+        for match in self.total_match:
+            total_match.append(match.as_match())
+        for key,value in self.match_in_round.items():
+            for match in value:
+                match_in_round.append(match.as_match())
+            matchs_in_round[key] = match_in_round
+
         json_data = {
             'player_ids': self.player_ids,
             'Name': self.name,
@@ -158,8 +168,8 @@ class Tournament:
             'players in tournament': self.players,
             'current round number': self.current_round_number,
             'player scores': self.players_scores,
-            'total match': self.total_match,
-            'match by round': self.match_in_round,
+            'total match': total_match,
+            'match by round': matchs_in_round,
             'round start time':self.round_time_start,
             'round end time':self.round_time_end,
         }
@@ -232,7 +242,7 @@ class Tournament:
         self.match_in_round.update(new_dict)
         round_start_time = datetime.strftime(datetime.now(), "%d/%m/%Y")
         self.round_time_start.update({self.current_round_number: round_start_time})
-        self.start_date = datetime.now()
+        # self.start_date = datetime.now()
         print(self.round_time_start)
         # print(self.players)
 
@@ -325,7 +335,7 @@ class Tournament:
             print(self.round_time_start)
         else:
             print('It\'s not possible to distribute match,Match is finished!')
-            self.end_date = datetime.now
+            # self.end_date = datetime.now
         # print(self.match_in_round)
         # for match in self.total_match:
         #     print(match.as_match())
