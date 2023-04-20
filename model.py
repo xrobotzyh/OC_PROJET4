@@ -13,7 +13,6 @@ class Player:
     }
 
     def __init__(self, id: int, first_name: str, last_name: str, birthday: datetime, club_id: str = "AB12345"):
-        self.score = 0
         self.id = id or 1
         self.first_name = first_name
         self.last_name = last_name
@@ -40,7 +39,8 @@ class Player:
             first_name=document['first name'],
             last_name=document['last name'],
             birthday=birthday,
-            club_id=document['club id']
+            club_id=document['club id'],
+
         )
 
     def as_dict(self):
@@ -49,7 +49,7 @@ class Player:
             "first name": self.first_name,
             "last name": self.last_name,
             "birthday DD/MM/YYYY": self.birthday,
-            "club id": self.club_id
+            "club id": self.club_id,
         }
         return player
 
@@ -63,55 +63,17 @@ class Player:
 
 class Match:
     def __init__(self, player_a: Player, player_b: Player):
-        self.match_round = None
         self.player_a = player_a
         self.player_b = player_b
         self.result = None
 
-    def as_match(self, match_round):
-        self.match_round = match_round
+    def as_match(self):
         match = {
-            "round :": self.match_round,
             "Player A :": self.player_a,
             "Player B :": self.player_b,
             "Result :": self.result
         }
         return match
-
-
-class Round:
-
-    def __init__(self, round_number: int, match_list: list[int]):
-        self.round_number = round_number
-        self.match_list = match_list
-        self.start_time = datetime.now()
-        self.end_time = None
-
-    def as_round(self):
-        round_start_time = datetime.strftime(self.start_time, "%d/%m/%Y")
-        if not self.end_time:
-            round_end_time = datetime.strftime(self.end_time, "%d/%m/%Y")
-        else:
-            round_end_time = None
-        match_round = {
-            'tournament_name': self.tournament_name,
-            'round number': self.round_number,
-            'match': self.match_list,
-            'next round begin at': round_start_time,
-            "next round end at": round_end_time,
-        }
-        return match_round
-
-    def from_db(self):
-        start_time = datetime.strftime(document['next round begin at'], "%d/%m/%Y")
-        end_time = datetime.strftime(document['next round end at'], "%d/%m/%Y")
-        return cls(
-            tournament_name=document['tournament_name'],
-            round_number=document['round number'],
-            match_list=document['match'],
-            start_time=start_time,
-            end_time=end_time,
-        )
 
 
 class Tournament:
@@ -124,69 +86,79 @@ class Tournament:
         'total round number': "total tournaments round number,4 by default",
     }
 
-    def __init__(self, name: str, location: str, start_date: datetime, end_date: datetime, round_number: int,
+    def __init__(self, name: str, location: str, start_date: datetime, end_date: datetime,
                  description: str, total_number_round: int, players: list = None):
         # self.ids = ids
         self.name = name
         self.location = location
         self.start_date = start_date
         self.end_date = end_date
-        self.number_round = round_number
         self.description = description
+        self.current_round_number: int = 1
         self.total_number_round = total_number_round
         self.players: List[Player] = players
-        self.current_round: int = round_number
-        self.rounds: List[Round] = []
-        # TODO initialiser la map avec les identifiants des joueurs, regarder la fonction dict.from_keys() ou quelque chose du genre
-        self.players_scores: Dict[int, float] = {}  # map of player id: score in the tournament
-
-    def __str__(self):
-        return f"Tournament: name={self.name}, location={self.location}, start_date={self.start_date}, end_date={self.end_date}, players={self.players}, rounds={self.number_round}"
-
+        # initialiser la map avec les identifiants des joueurs, regarder la fonction dict.from_keys() ou quelque chose du genre
+        self.players_scores: Dict[int, float] = {player[0]['id'] : 0 for player in                            #player[0]['id']
+                                                 self.players}  # map of player id: score in the tournament
+        self.player_ids: List[int] = [player[0]['id'] for player in self.players]
+        self.total_match = []
+        self.match_in_round: Dict[int,[Match]] = {self.current_round_number: []}
+        self.round_time : Dict[int,str] = {self.current_round_number:''}
+    # def __str__(self):
+    #     return f"Tournament: name={self.name}, location={self.location}, start_date={self.start_date}, end_date={self.end_date}, players={self.players}, rounds={self.number_round}"
 
     @classmethod
     def from_values(cls, values: Dict[str, Any]) -> 'Tournament':
         start_date = datetime.strptime(values['start date'], "%d/%m/%Y")
         end_date = datetime.strptime(values['end date'], "%d/%m/%Y")
         # tournament_id = values['id']
-        player = values['player']
+        players = values['player']
         return cls(
             # ids = tournament_id,
             name=values['name'],
             location=values['location'],
             start_date=start_date,
             end_date=end_date,
-            round_number=0,
             description=values['tournament description'],
             total_number_round=4,
-            players=player,
+            players=players,
         )
 
     @classmethod
-    def from_db(cls, document: Dict[str, Any], players: Dict[int, Player]) -> 'Tournament':
-        start_date = datetime.strftime(document['First match date DD/MM/YYYY'], "%d/%m/%Y")
-        end_date = datetime.strftime(document['Last match date DD/MM/YYYY'], "%d/%m/%Y")
-
-        player_ids: List[int] = document['player_ids']
-        tournament_players: List[Player] = [players[player_id] for player_id in player_ids]
+    def from_db(cls, document: Dict[str, Any]) -> 'Tournament':  # players: Dict[int, Player]
+        # start_date = datetime.strftime(document['start_date'], "%d/%m/%Y")
+        # end_date = datetime.strftime(document['end_date'], "%d/%m/%Y")
 
         return cls(
-            # ids=document['tournament id'],
+
             name=document['Name'],
             location=document['Location'],
-            start_date=start_date,
-            end_date=end_date,
-            round_number=0,
-            description=document['Descrition of the tournament'],
-            total_number_round=4,
-            players=tournament_players,
+            start_date=document['start_date'],
+            end_date=document['end_date'],
+            # current_round_number=document['current round number'],
+            description=document['description'],
+            total_number_round=document['total round of tournament'],
+            players=document['players in tournament'],
+            # players_scores=document['player scores']
         )
 
-    def to_json(self):
+    def to_db(self):
         # TODO à remplir, le but est d'avoir une structure pour la DB et pas pour l'affichage.
         # À lier avec la fonction from_db pour les clefs de document
-        json_data = {}
-        json_data['player_ids'] = [player.id for player in self.players]
+        json_data = {
+            'player_ids': self.player_ids,
+            'Name': self.name,
+            'Location': self.location,
+            'start_date': self.start_date,
+            'end_date': self.end_date,
+            'description': self.description,
+            'total round of tournament': self.total_number_round,
+            'players in tournament': self.players,
+            'current round number': self.current_round_number,
+            'player scores': self.players_scores,
+            'total match': self.total_match,
+            'match by round': self.match_in_round
+        }
         return json_data
 
     def as_dict(self):
@@ -197,9 +169,9 @@ class Tournament:
             "First match date DD/MM/YYYY": self.start_date,
             "Last match date DD/MM/YYYY": self.end_date,
             "Total number of round": self.total_number_round,
-            "Round": self.number_round,
+            "current round number": self.current_round_number,
             "List of players participate": self.players,
-            "Descrition of the tournament": self.description
+            "Description of the tournament": self.description
         }
         return tournament
 
@@ -208,116 +180,150 @@ class Tournament:
         return self.end_date <= now
 
     def start(self):
-        new_round: Round = self.generate_first_round()
-        self.rounds.append(new_round)
-        self.players_scores = ...
+        self.generate_first_round()
+        self.current_round_number += 1
+        # self.update_winner_state_match()
+        # self.sort_list_of_players_by_scores()
+
+        # new_round: Round = self.generate_first_round()
+        # self.rounds.append(new_round)
+        # self.players_scores =
 
     def go_to_next_round(self):
         # TODO m'appeler depuis le controller
-        self.current_round += 1
-        new_round: Round = self.generate_next_round()
-        self.rounds.append(new_round)
-        if self.current_round == self.number_round
+        # self.current_round += 1
+        # new_round: Round = self.generate_next_round()
+        # self.rounds.append(new_round)
+        # if self.current_round == self.number_round
+        self.generate_next_round()
 
-    def generate_random_opponent_first_match(list_players):
+    def generate_first_round(self):
         """
         for the first round game,we use random function
         :param list_contestants: a list of contestants for the tournaments
         :return: a dictionary key = round information value = list every opponents
         """
-        list_match_round_one = []
-        list_match_current_round = []
 
-        random.shuffle(list_players)
-        if (len(list_players)) % 2 == 0:
+        current_round_matchs = []
+
+        random.shuffle(self.players)
+        if (len(self.players)) % 2 == 0:
             i = 0
-            while i <= len(list_players) // 2:
-                match = Match(list_players[i], list_players[i + 1])
-                list_match_round_one.append(match)
-                list_match_current_round.append([match.player_a, match.player_b])
-                print(f'***pair successful{[list_players[i], list_players[i + 1]]}***\nThe paired player list')
-                print(list_match_current_round)
+            match_number = 1
+            while i < len(self.players):
+                match = Match(self.players[i], self.players[i + 1])
+                current_round_matchs.append(match)
+                self.total_match.append([match.player_a,match.player_b])
+                name_player1 = match.as_match().get("Player A :")[0].get("first name") + " " + \
+                               match.as_match().get("Player A :")[0].get("last name")
+                name_player2 = match.as_match().get("Player B :")[0].get("first name") + " " + \
+                               match.as_match().get("Player B :")[0].get("last name")
+                print(f'Match {match_number} : {name_player1} VS {name_player2}\n')
+                match_number += 1
                 i += 2
         else:
             print(f'The number of the players must be even')
         # print(list_match_round_one)
-        return list_match_round_one
+        new_dict = {self.current_round_number: current_round_matchs}
+        self.match_in_round.update(new_dict)
+        time = datetime.strftime(datetime.now(), "%d/%m/%Y")
+        self.round_time = {self.current_round_number: time}
+        self.start_date = datetime.now()
+        print(self.round_time)
+        # print(self.players)
 
-    def update_winner_state_match(list_match_round_x: list[Match], db, player_with_score: dict[int:int]):
+    def update_winner_state_match(self):
         """
         :param list_opponent_in_match: a list contains [every opponents information] in a round
         :param rounds: round number
         :return: a list contain two list,list one[opponents information],two [winner],list_opponent_in_match is a dict
                  contains round number and list player in match with winner
         """
-        players = db
-
-        for match in list_match_round_x:
-            player1 = players.get(match.player_a)
-            player2 = players.get(match.player_b)
-            player1_name = player1.first_name + " " + player1.last_name
-            player2_name = player2.first_name + " " + player2.last_name
-            match.result = input(f'The winner is 1 for {player1_name}, 2 for {player2_name}, or 3 for tie\n')
+        round_number = self.current_round_number-1
+        current_round_matchs = self.match_in_round[round_number]
+        for match in current_round_matchs:
+            name_player1 = match.as_match().get("Player A :")[0].get("first name") + " " + \
+                           match.as_match().get("Player A :")[0].get("last name")
+            name_player2 = match.as_match().get("Player B :")[0].get("first name") + " " + \
+                           match.as_match().get("Player B :")[0].get("last name")
+            match.result = input(f'The winner is 1 for {name_player1}, 2 for {name_player2}, or 3 for tie\n')
             print(f'the match state changed')
-            print(f'{match.as_match(1)}\n')
             if match.result == '1':
-                score = player_with_score[player1.id] + 1
-                new_dict = {player1.id: score}
-                player_with_score.update(new_dict)
-
+                player_id = match.player_a[0].get('id')
+                score = self.players_scores[player_id] + 1
+                new_dict = {player_id: score}
+                self.players_scores.update(new_dict)
             elif match.result == '2':
-                score = player_with_score[player2.id] + 1
-                new_dict = {player2.id: score}
-                player_with_score.update(new_dict)
+                player_id = match.player_b[0].get('id')
+                score = self.players_scores[player_id] + 1
+                new_dict = {player_id: score}
+                self.players_scores.update(new_dict)
             else:
-                score = player_with_score[player1.id] + 0.5
-                new_dict = {player1.id: score}
-                player_with_score.update(new_dict)
-                score = player_with_score[player2.id] + 0.5
-                new_dict = {player2.id: score}
-                player_with_score.update(new_dict)
-            print(f'The list of player before sort by score')
-            print(f'{player_with_score}\n')
+                player_id = match.player_a[0].get('id')
+                score = self.players_scores[player_id] + 0.5
+                new_dict = {player_id: score}
+                self.players_scores.update(new_dict)
+                player_id = match.player_b[0].get('id')
+                score = self.players_scores[player_id] + 0.5
+                new_dict = {player_id: score}
+                self.players_scores.update(new_dict)
+            # print(f'The list of player before sort by score')
+            # print(f'{self.players_scores}\n')
+        self.sort_list_of_players_by_scores()
 
-        return player_with_score
-
-    def sort_list_of_players_by_scores(list_player_with_score):
-        list_player_sorted_by_scores = dict(
-            sorted(list_player_with_score.items(), key=lambda score: score[1], reverse=True))
+    def sort_list_of_players_by_scores(self):
+        list_sorted = dict(sorted(self.players_scores.items(), key=lambda score: score[1], reverse=True))
         print(f'The player list sorted by score is done')
-        print(f'{list_player_sorted_by_scores}\n')
-        return list_player_sorted_by_scores
-
-    def generate_next_round_match(list_next_round, list_total):
-        round_matches = []
-        list_match_current_round = []
-        j = 1
-        r = 1
-        while j <= len(list_next_round) - 1:
-            match = Match(list_next_round[0], list_next_round[j])  # TypeError: 'type' object is not subscriptable
-            print(match.as_match(2))
-            if match != [] and [match.player_a, match.player_b] not in list_total and [match.player_b,
-                                                                                       match.player_a] not in list_total:
-                round_matches.append(match)
-                list_total.append([match.player_a, match.player_b])
-                list_match_current_round.append([match.player_a, match.player_b])
-                list_next_round.remove(match.player_a)
-                list_next_round.remove(match.player_b)
-                print(f'***pair successful : {[match.player_a, match.player_b]}***\n')
-                # print(f'The paired player list {list_total}\n')
-                j = 1
-            else:
-                j += 1
-            # r += 1
-            # print(f'the {r} try')
-        if not len(round_matches):
-            print('No match can be distributed')
-
-        print(f'the pair list for next round {list_match_current_round}\n')
-        print(f'The paired player list {list_total}')
-
-        return round_matches, list_total
+        self.players_scores = list_sorted
+        sorted_players = []
+        for player_id in list_sorted.keys():
+            for player in self.players:
+                if player[0]['id'] == player_id:
+                    sorted_players.append(player)
+        self.players = sorted_players
+        print(f'{self.players_scores}')
+        # print(f'{self.players}')
 
     def generate_next_round(self):
-        self.rounds
-        self.players
+        current_round_matchs = []
+        list_next_round = self.players.copy()
+        print(list_next_round)
+        i = 1
+        match_number = 0
+        while i <= len(list_next_round) - 1:
+            match = Match(list_next_round[0], list_next_round[i])
+            if match != [] and [match.player_a, match.player_b] not in self.total_match and [match.player_b, match.player_a] not in self.total_match:
+
+                match_number += 1
+                current_round_matchs.append(match)
+                self.total_match.append([match.player_a,match.player_b])
+                list_next_round.remove(match.player_a)
+                list_next_round.remove(match.player_b)
+                name_player1 = match.player_a[0].get("first name") + " " + \
+                               match.as_match().get("Player A :")[0].get("last name")
+                name_player2 = match.as_match().get("Player B :")[0].get("first name") + " " + \
+                               match.as_match().get("Player B :")[0].get("last name")
+                print(f'Match {match_number} :  {name_player1} VS {name_player2}\n')
+                i = 1
+            else:
+                i += 1
+        if not len(list_next_round):
+            print('All matches distributed')
+        if current_round_matchs:
+            new_dict = {self.current_round_number: current_round_matchs}
+            self.match_in_round.update(new_dict)
+            self.current_round_number += 1
+            time = datetime.strftime(datetime.now(),"%d/%m/%Y")
+            print(time)
+            self.round_time = {self.current_round_number:time}
+            print(self.round_time)
+        else :
+            print('No possible to distribute match,Match is finished!')
+            self.end_date = datetime.now
+        # print(self.match_in_round)
+        # for match in self.total_match:
+        #     print(match.as_match())
+        # print(f'the pair list for next round {current_round_matchs}\n')
+        # print(f'The paired player list {self.total_match}')
+
+
