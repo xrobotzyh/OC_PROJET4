@@ -30,7 +30,9 @@ class Controller:
         self.db_passed_tournament = self.reserialization_directory_resources('/data/passed_tournament')
 
         self.players: Dict[int, Player] = self.load_players_from_db()
-        self.current_tournament: Dict[int, Tournament] = self.load_tournaments_from_db('/data/current_tournament')
+        self.current_tournament: Tournament = None # TODO
+        # self.tournaments: Dict[int, Tournament]
+        # self.current_tournament: Dict[int, Tournament] = self.load_tournaments_from_db('/data/current_tournament')
         self.passed_tournament: Dict[int, Tournament] = self.load_tournaments_from_db('/data/passed_tournament')
 
     def load_players_from_db(self) -> Dict[int, Player]:
@@ -38,7 +40,7 @@ class Controller:
         players_documents: List[Document] = db
         players = {}
         for player_document in players_documents:
-            players[player_document.doc_id] = Player.from_db(player_document)
+            players[player_document.doc_id] = Player.from_json(player_document)
         return players
 
     # def load_tournaments_from_db(self) -> Dict[int,Tournament]:
@@ -63,7 +65,7 @@ class Controller:
         # for table_name in table_names:
         #     tournaments_document = db.table(table_name).all()
         for tournament_document in tournaments_document:
-            tournaments[tournament_document.doc_id] = Tournament.from_db(tournament_document)
+            tournaments[tournament_document.doc_id] = Tournament.from_json(tournament_document, players_db=self.players)
         return tournaments
 
     def display_main_menu(self):
@@ -90,7 +92,7 @@ class Controller:
 
     def load_save(self):
         for id_tournament, tournament in self.current_tournament.items():
-            self.db_current_tournament.update(tournament.to_db(),doc_ids=[id_tournament])
+            self.db_current_tournament.update(tournament.to_json(), doc_ids=[id_tournament])
         # for document in self.db_current_tournament:
         #     print(document.doc_id)
         # self.db_passed_tournament.update(self.passed_tournament, doc_ids=self.db_passed_tournament.all_ids())
@@ -250,8 +252,7 @@ class Controller:
 
     def display_players(self):
         for player_id, player in self.players.items():
-            self.view.display_message(f"\n### Players List number {player_id} ###")
-            self.view.display_dicts(player.as_dict())
+            self.view.display_message(str(player))
         self.display_player_management_menu()
 
     def display_tournament_management_menu(self):
@@ -274,17 +275,17 @@ class Controller:
     def create_new_tournament(self):
         input_fields = Tournament.INPUT_FIELDS
         user_inputs = self.view.get_user_inputs(input_fields)
-        user_inputs['player'] = self.add_players_to_tournament()
+        user_inputs['players'] = self.add_players_to_tournament()
         tournament = Tournament.from_values(user_inputs)
         if tournament.is_finished():
             db = self.db_passed_tournament
             # table_tournament = db.table(user_inputs['name'])
-            db.insert(Tournament.to_db(tournament))
+            db.insert(Tournament.to_json(tournament))
         else:
             # tournament['id'] = self.generate_current_tournament_id()
             db = self.db_current_tournament
             # table_tournament = db.table(user_inputs['name'])
-            db.insert(Tournament.to_db(tournament))
+            db.insert(Tournament.to_json(tournament))
         self.view.display_message(f'The tournament is created !')
         self.display_tournament_management_menu()
 
@@ -305,6 +306,25 @@ class Controller:
     def display_manage_the_current_tournament_by_id_menu(self):
         tournament_id = self.view.get_user_input('Please enter the id of the tournament')
         self.display_update_tournament_by_id(tournament_id)
+
+
+    def current_tournament_enter_round_results(self):
+        round = self.current_tournament.rounds[-1]
+        for match in round.matches:
+            self.view.display_message("Enter match result") # avec les infos du match
+            result = self.view.get_user_input()
+            match.set_result(result)
+
+        self.current_tournament.go_to_next_round()
+        self.save_current_tournament_in_db()
+
+
+        for id_tournament, tournament in self.current_tournament.items():
+            if str(id_tournament) == str(tournament_id):
+                if not tournament.match_in_round[tournament.current_round_number-1][1].result:
+                    tournament.update_winner_state_match()
+                else :
+                    self.view.display_message(f'The winner state has entered')
 
     def display_update_tournament_by_id(self, tournament_id):  # ??<<<<<<<<<
 
@@ -330,17 +350,12 @@ class Controller:
                             break
                         else:
                             tournament.go_to_next_round()
-                            new_tournament =  tournament.to_db()
+                            new_tournament =  tournament.to_json()
                     self.view.display_message(f'Round {tournament.current_round_number-1} is above')
             self.display_update_tournament_by_id(tournament_id)
         elif user_choice == "1":
-            for id_tournament, tournament in self.current_tournament.items():
-                if str(id_tournament) == str(tournament_id):
-                    if not tournament.match_in_round[tournament.current_round_number-1][1].result:
-                        tournament.update_winner_state_match()
-                    else :
-                        self.view.display_message(f'The winner state has entered')
-                    self.display_update_tournament_by_id(tournament_id)
+            self.current_tournament_enter_round_results()
+            self.display_update_tournament_by_id(tournament_id)
         elif user_choice == "2":
             self.update_information_of_a_tournament(tournament_id)
         elif user_choice == "3":
