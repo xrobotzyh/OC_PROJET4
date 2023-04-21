@@ -86,28 +86,40 @@ class Tournament:
         'total round number': "total tournaments round number,4 by default",
     }
 
-    def __init__(self, name: str, location: str, start_date: datetime, end_date: datetime,
-                 description: str, total_number_round: int, players: list = None):
+    def __init__(self,
+                 name: str,
+                 location: str,
+                 start_date: datetime,
+                 end_date: datetime,
+                 description: str,
+                 total_number_round: int,
+                 players: list = None,
+                 current_round_number:int = 1,
+                 # players_scores: Dict[int, int] = None,
+                 # player_ids: List[int] = None,
+                 # total_match: List = None,
+                 # match_in_round: Dict[int, List] = None,
+                 # round_time_start: Dict[int, str] = None,
+                 # round_time_end: Dict[int, str] = None
+        ):
         # self.ids = ids
         self.name = name
         self.location = location
         self.start_date = start_date
         self.end_date = end_date
         self.description = description
-        self.current_round_number: int = 1
+        self.current_round_number = current_round_number
         self.total_number_round = total_number_round
         self.players: List[Player] = players
-        # initialiser la map avec les identifiants des joueurs, regarder la fonction dict.from_keys() ou quelque chose du genre
-        self.players_scores: Dict[int, float] = {player[0]['id']: 0 for player in  # player[0]['id']
+        # initialiser la map avec les identifiants des joueurs, regarder la fonction dict.from_keys() ou quelque
+        # chose du genre
+        self.players_scores = {player[0]['id']: 0 for player in  # player[0]['id']
                                                  self.players}  # map of player id: score in the tournament
         self.player_ids: List[int] = [player[0]['id'] for player in self.players]
         self.total_match = []
         self.match_in_round: Dict[int, [Match]] = {self.current_round_number: []}
         self.round_time_start: [Dict[int, str]] = {self.current_round_number: ''}
         self.round_time_end: [Dict[int, str]] = {self.current_round_number: ''}
-
-    # def __str__(self):
-    #     return f"Tournament: name={self.name}, location={self.location}, start_date={self.start_date}, end_date={self.end_date}, players={self.players}, rounds={self.number_round}"
 
     @classmethod
     def from_values(cls, values: Dict[str, Any]) -> 'Tournament':
@@ -137,7 +149,7 @@ class Tournament:
             location=document['Location'],
             start_date=document['start_date'],
             end_date=document['end_date'],
-            # current_round_number=document['current round number'],
+            current_round_number=document['current round number'],
             description=document['description'],
             total_number_round=document['total round of tournament'],
             players=document['players in tournament'],
@@ -147,16 +159,13 @@ class Tournament:
     def to_db(self):
         # TODO à remplir, le but est d'avoir une structure pour la DB et pas pour l'affichage.
         # À lier avec la fonction from_db pour les clefs de document
-        total_match = []
-        match_in_round = []
-        matchs_in_round = {}
-        for match in self.total_match:
-            total_match.append(match.as_match())
-        for key,value in self.match_in_round.items():
+        # total_match = []
+        matches_in_round = {}
+        matches = []
+        for key, value in self.match_in_round.items():
             for match in value:
-                match_in_round.append(match.as_match())
-            matchs_in_round[key] = match_in_round
-
+                matches.append(match.as_match())
+            matches_in_round.update({key: matches})
         json_data = {
             'player_ids': self.player_ids,
             'Name': self.name,
@@ -168,10 +177,10 @@ class Tournament:
             'players in tournament': self.players,
             'current round number': self.current_round_number,
             'player scores': self.players_scores,
-            'total match': total_match,
-            'match by round': matchs_in_round,
-            'round start time':self.round_time_start,
-            'round end time':self.round_time_end,
+            'total match': self.total_match,
+            'match by round': matches_in_round,
+            'round start time': self.round_time_start,
+            'round end time': self.round_time_end,
         }
         return json_data
 
@@ -303,7 +312,7 @@ class Tournament:
     def generate_next_round(self):
         current_round_matchs = []
         list_next_round = self.players.copy()
-        print(list_next_round)
+        # print(list_next_round)
         i = 1
         match_number = 0
         while i <= len(list_next_round) - 1:
@@ -336,7 +345,12 @@ class Tournament:
         else:
             print('It\'s not possible to distribute match,Match is finished!')
             # self.end_date = datetime.now
-        # print(self.match_in_round)
+        # print(self.total_match)
+        # print(f'************')
+        #
+        # print(len(matchs_in_round))
+        # print(matchs_in_round)
+
         # for match in self.total_match:
         #     print(match.as_match())
         # print(f'the pair list for next round {current_round_matchs}\n')
