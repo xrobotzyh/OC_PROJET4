@@ -60,8 +60,6 @@ class Controller:
         # table_names = db.tables()
         tournaments_document = db.all()
         tournaments = {}
-        # for table_name in table_names:
-        #     tournaments_document = db.table(table_name).all()
         for tournament_document in tournaments_document:
             tournaments[tournament_document.doc_id] = Tournament.from_db(tournament_document)
         return tournaments
@@ -330,7 +328,6 @@ class Controller:
                             break
                         else:
                             tournament.go_to_next_round()
-                            new_tournament =  tournament.to_db()
                     self.view.display_message(f'Round {tournament.current_round_number-1} is above')
             self.display_update_tournament_by_id(tournament_id)
         elif user_choice == "1":

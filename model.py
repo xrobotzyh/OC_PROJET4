@@ -94,14 +94,14 @@ class Tournament:
                  description: str,
                  total_number_round: int,
                  players: list = None,
-                 current_round_number:int = 1,
+                 current_round_number: int = 1,
                  # players_scores: Dict[int, int] = None,
                  # player_ids: List[int] = None,
                  # total_match: List = None,
                  # match_in_round: Dict[int, List] = None,
                  # round_time_start: Dict[int, str] = None,
                  # round_time_end: Dict[int, str] = None
-        ):
+                 ):
         # self.ids = ids
         self.name = name
         self.location = location
@@ -114,10 +114,10 @@ class Tournament:
         # initialiser la map avec les identifiants des joueurs, regarder la fonction dict.from_keys() ou quelque
         # chose du genre
         self.players_scores = {player[0]['id']: 0 for player in  # player[0]['id']
-                                                 self.players}  # map of player id: score in the tournament
+                               self.players}  # map of player id: score in the tournament
         self.player_ids: List[int] = [player[0]['id'] for player in self.players]
         self.total_match = []
-        self.match_in_round: Dict[int, [Match]] = {self.current_round_number: []}
+        self.match_in_round: Dict[int, List[Match]] = match_in_round or {self.current_round_number: []}
         self.round_time_start: [Dict[int, str]] = {self.current_round_number: ''}
         self.round_time_end: [Dict[int, str]] = {self.current_round_number: ''}
 
