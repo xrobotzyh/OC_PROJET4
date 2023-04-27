@@ -96,8 +96,8 @@ class Match:
                 player_b = player
                 # score_b = document["player_b"][1]
         return cls(
-            player_a= player_a,
-            player_b= player_b,
+            player_a=player_a,
+            player_b=player_b,
             result=document['result']
         )
 
@@ -117,7 +117,7 @@ class Round:
 
     def to_json(self) -> Dict[str, Any]:
         # ODO
-        if type(self.start_time) == datetime :
+        if type(self.start_time) == datetime:
             start_time = datetime.strftime(self.start_time, DATETIME_FORMAT)
         else:
             start_time = self.start_time
@@ -279,17 +279,12 @@ class Tournament:
         current_round = self.rounds[-1]
         # current_round.close()
         if self.current_round_number == self.total_round_number:
-            pass
+            self.finish()
         else:
             self.generate_next_round()
 
-        # TODO m'appeler depuis le controller
-        # new_round: Round = self.generate_next_round()
-        # self.rounds.append(new_round)
-        #
-
-    def finished(self):
-        pass
+    def finish(self):
+        self.end_date = datetime.strftime(datetime.now(), DATETIME_FORMAT)
 
 
     def generate_first_round(self):
@@ -334,7 +329,7 @@ class Tournament:
         self.players = sorted_players
 
     def generate_next_round(self):
-        current_round_matchs = []
+        current_round_matches = []
         list_next_round = self.players.copy()
         round_name = 'round' + ' ' + str(self.current_round_number)
         print(round_name)
@@ -351,7 +346,7 @@ class Tournament:
             if match != [] and [match.player_a[0], match.player_b[0]] not in total_matches and \
                     [match.player_b[0], match.player_a[0]] not in total_matches:
                 match_number += 1
-                current_round_matchs.append(match)
+                current_round_matches.append(match)
                 list_next_round.remove(list_next_round[0])
                 list_next_round.remove(list_next_round[i - 1])
                 print(f'Match {match_number} :  {match.player_a[0]} VS {match.player_b[0]}\n')
@@ -360,12 +355,12 @@ class Tournament:
                 i += 1
         if not len(list_next_round):
             print('All matches distributed')
-        if current_round_matchs:
-            current_round = Round(current_round_matchs, round_name)
+        if current_round_matches:
+            current_round = Round(current_round_matches, round_name)
             current_round.start()
             self.rounds.append(current_round)
         else:
-            print('It\'s not possible to distribute match,Match is finished!')
+            print('It\'s not possible to distribute match.')
 
     def update_players_scores(self):
         round = self.rounds[-1]

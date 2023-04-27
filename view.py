@@ -1,4 +1,5 @@
 from typing import Dict, Any
+from jinja2 import Template
 
 
 class View:
@@ -34,62 +35,37 @@ class View:
     def display_message(self, message):
         print(message)
 
-    # def _display_lists(self, lists):
-    #     for i in range(len(lists)):
-    #         print(i)
     def display_dicts(self, dicts):
         # a function that will show the dictionary line by line
 
         for key, value in dicts.items():
             print(f'{key}: {value}')
 
-    # def display_add_new_tournament_menu(self):
-    #
-    #     # a block to show add a new tournament,after the input return to the main menu
-    #
-    #     tournament = Tournament().get_tournament()  # initialization data
-    #     tournament.pop("List of players participate")  # delete the element "player" handle it separately
-    #     print(self.header_main)
-    #     print(self.header_add_tournament)
-    #     tournament = update_dicts(tournament)
-    #     player = []
-    #     reponse = input("Do you want to add player? Y/N \n")
-    #     while reponse in ["y", "Y"]:
-    #         player = create_a_new_player(player)
-    #         reponse = input("Do you want to add player? Y/N \n")
-    #     tournament.update({"List of players participate": player})
-    #     print(display_dicts(tournament))
-    #     return tournament
-    #
-    # def display_current_tournament(self, tournaments):
-    #     print(self.header_main)
-    #     tournament = Tournament()
-    #     for index, tournament in enumerate(tournaments):
-    #         print(f'{index + 1} : {tournament["Name"]}')
-    #     choice = input("\n*Select the tournament you want to manage by typing its number \n")
-    #     return choice
-    #
-    # def display_manage_tournament(self):
-    #     print(self.header_main)
-    #     dict_manage_tournament = {
-    #         0: "Add a new player to the tournament",
-    #         1: "Generate next match",
-    #         2: "Add the result of last round",
-    #         3: "Show the history results"
-    #     }
-    #     display_dicts(dict_manage_tournament)
-    #     choice = input(self.footer)
-    #     return choice
+    def display_report_template(self):
+        template = Template('''
+        <html>
+        <head>
+            <title>{{ report_title }}</title>
+        </head>
+        <body>
+            <h1>{{ report_title }}</h1>
+            <table>
+                <tr>
+                    {% for column in columns %}
+                    <th>{{ column }}</th>
+                    {% endfor %}
+                </tr>
+                {% for item in report_data %}
+                <tr>
+                    {% for column in columns %}
+                    <td>{{ item[column] }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </table>
+        </body>
+        </html>
+        ''')
+        return template
 
-    # def display_previous_tournament(self, tournaments):
-    #     print(self.header_main)
-    #     tournament = Tournament()
-    #     for index, tournament in enumerate(tournaments):
-    #         print(f'{index + 1} : {tournament["Name"]}')
-    #     choice = input("\n*Select the tournament you want to manage by typing its number \n")
-    #     return choice
 
-    # def display_no_tournament_at_this_moment(self):
-    #     if not os.path.exists('resources') or len(new_tournaments) == 0:
-    #         print('**//!!!There is no tournament for the moment!!!//**\n\n\n')
-    #

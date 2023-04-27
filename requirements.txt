@@ -1,2 +1,3 @@
 tinydb~=4.7.1
 tinydb_serialization
+jinja2

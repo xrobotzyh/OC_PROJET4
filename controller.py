@@ -12,6 +12,7 @@ from tinydb.storages import JSONStorage
 from tinydb_serialization import SerializationMiddleware
 from tinydb_serialization.serializers import DateTimeSerializer
 from datetime import datetime
+import re
 
 
 class Controller:
@@ -70,7 +71,7 @@ class Controller:
         elif user_choice == "1":
             self.display_tournament_management_menu()
         elif user_choice == "2":
-            self.view.display_reports_menu()  # TODO
+            self.display_reports_menu()
         elif user_choice == "3":
             self.load_save()
         elif user_choice == "4":
@@ -299,8 +300,11 @@ class Controller:
         round = self.current_tournament.rounds[-1]
         if not round.end_time:
             for match in round.matches:
-                result = self.view.get_user_input(f"Enter match result {match},The winner is 1 for "
-                                                  f"player A, 2 for player B, or 3 for tie  ")
+                result = self.view.get_user_input(f"Enter match result player id {match.player_a[0]} VS player id "
+                                                  f"{match.player_b[0]},The winner is 1 for "
+                                                  f"{match.player_a[0].first_name} {match.player_a[0].last_name}, 2 "
+                                                  f"for {match.player_b[0].first_name} {match.player_b[0].last_name}, "
+                                                  f"or 3 for tie  ")
                 match.set_result(result)
                 match.result = result
         else:
@@ -316,7 +320,6 @@ class Controller:
         print(self.current_tournament.players_scores)
         self.current_tournament.current_round_number += 1
         self.current_tournament.rounds[-1].close()
-
 
     def display_update_tournament_by_id(self):
 
@@ -356,7 +359,7 @@ class Controller:
                     f'The player in the tournaments are : {self.current_tournament.players.__str__()}')
                 new_value_player = self.add_players_to_tournament()
                 self.current_tournament.players = new_value_player
-            else :
+            else:
                 self.view.display_message('You can not edit the players list,because the match is started!')
         elif change_value in ('start_date', 'end_date'):
             if not self.current_tournament.rounds[-1].matches[0]:
@@ -453,13 +456,6 @@ class Controller:
             # list_player_obj = Player.from_json(list_player)
         return list_player
 
-    # def create_a_new_dict(self, listdata: list, new_data: dict):
-    #     # a function that will update a list of players after input manipulations by users
-    #     if listdata is None:
-    #         listdata = []
-    #     listdata.append(update_dicts(new_data))
-    #     return listdata
-
     def reserialization_directory_resources(self, filename):
         serialization = SerializationMiddleware(JSONStorage)
         serialization.register_serializer(DateTimeSerializer(), 'date')
@@ -470,3 +466,131 @@ class Controller:
         filename = Path("resources/" + str(filename) + '.json')
         db = TinyDB(filename, storage=serialization)
         return db
+
+    def display_reports_menu(self):
+        choices = {
+            "0": "print all players in alphabetical order",
+            "1": "print list of all tournaments",
+            "2": "print the name and dates of a given tournament",
+            "3": "print list of players in the tournament in alphabetical order",
+            "4": "print list of all rounds and matches of a tournament",
+            "5": "back"
+
+        }
+        user_choice = self.view.display_menu(choices)  # show the main menu
+        if user_choice == "0":
+            report_title, columns, report_data = self.report_of_all_players_in_alphabetical_order()
+            self.generate_report(report_title, columns, report_data)
+        elif user_choice == "1":
+            report_title, columns, report_data = self.report_of_all_tournaments()
+            self.generate_report(report_title, columns, report_data)
+        elif user_choice == "2":
+            report_title, columns, report_data = self.report_of_a_tournament_given()
+            self.generate_report(report_title, columns, report_data)
+        elif user_choice == "3":
+            report_title, columns, report_data = self.report_players_in_tournament()
+            self.generate_report(report_title, columns, report_data)
+        elif user_choice == "4":
+            report_title, columns, report_data = self.report_round_and_match_information_of_a_tournament()
+            self.generate_report(report_title, columns, report_data)
+        else:
+            self.display_main_menu()
+        self.display_reports_menu()
+
+    def generate_report(self, report_title:str, columns:list[str], report_data:list[dict]):
+        filename = re.sub(r"\s+", "_", report_title)
+        template = self.view.display_report_template()
+        report_html = template.render(report_title=report_title, columns=columns, report_data=report_data)
+        filename = Path("resources/data/" + filename + ".html")
+        with open(filename, 'w') as f:
+            f.write(report_html)
+        self.view.display_message('report generate successfully !')
+
+    def report_of_all_players_in_alphabetical_order(self):
+        report_title = 'report of all players in alphabetical order'
+        columns = ['first name', 'last name', 'birthday', 'club id']
+        sorted_player_list = sorted(self.players.values(), key=lambda x: x.first_name)
+        report_data = []
+        for player in sorted_player_list:
+            report_data.append({
+                'first name': player.first_name,
+                'last name': player.last_name,
+                'birthday': player.birthday,
+                'club id': player.club_id
+            })
+        return report_title, columns, report_data
+
+    def report_of_all_tournaments(self):
+        report_title = 'list of all tournaments'
+        columns = ['name', 'location', 'start date', 'end date']
+        report_data = []
+        for tournament in self.tournaments.values():
+            report_data.append({
+                'name': tournament.name,
+                'location': tournament.location,
+                'start date': tournament.start_date,
+                'end date': tournament.end_date
+            })
+        for tournament in self.passed_tournament.values():
+            report_data.append({
+                'name': tournament.name,
+                'location': tournament.location,
+                'start date': tournament.start_date,
+                'end date': tournament.end_date
+            })
+        return report_title, columns, report_data
+
+    def report_of_a_tournament_given(self):
+        tournament_id = self.view.get_user_input('Please enter the id of the tournament')
+        tournament = self.find_tournament_by_id(tournament_id)
+        report_title = 'report of name and date for' + ' ' + str(tournament.name)
+        columns = ['name', 'start date', 'end date']
+        report_data = [{
+            'name': tournament.name,
+            'start date': tournament.start_date,
+            'end date': tournament.end_date
+        }]
+        return report_title, columns, report_data
+
+    def report_players_in_tournament(self):
+        tournament_id = self.view.get_user_input('Please enter the id of the tournament')
+        tournament = self.find_tournament_by_id(tournament_id)
+        sorted_list_player = sorted(tournament.players, key=lambda x: x.first_name)
+        report_title = 'report of all players in tournament ' + ' ' + str(tournament.name)
+        columns = ['id', 'first name', 'last name', 'club id']
+        report_data = []
+        for player in sorted_list_player:
+            report_data.append({
+                'id': player.id,
+                'first name': player.first_name,
+                'last name': player.last_name,
+                'club id': player.club_id
+            })
+        return report_title, columns, report_data
+
+    def report_round_and_match_information_of_a_tournament(self):
+        tournament_id = self.view.get_user_input('Please enter the id of the tournament')
+        tournament = self.find_tournament_by_id(tournament_id)
+        report_title = 'report of round and match information of tournament' + ' ' + str(tournament.name)
+        columns = ['round name', 'match', 'winner', 'round start date', 'round end date']
+        report_data = []
+        for round in tournament.rounds:
+            for match in round.matches:
+                if match.result == '1':
+                    winner = match.player_a[0].first_name + ' ' + match.player_a[0].last_name
+                elif match.result == '2':
+                    winner = match.player_b[0].first_name + ' ' + match.player_b[0].last_name
+                else:
+                    winner = 'Tie'
+                # match_information = match.player_a[0].first_name + ' ' + match.player_a[0].last_name + ' VS ' + \
+                #                     match.player_b[0].first_name + ' ' + match.player_b[0].last_name
+                report_data.append({
+                    'round name': round.name,
+                    'match': match,
+                    'winner': winner,
+                    'round start date': round.start_time,
+                    'round end date': round.end_time
+                })
+        return report_title, columns, report_data
+
+
