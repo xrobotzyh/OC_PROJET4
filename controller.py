@@ -21,8 +21,8 @@ class Controller:
 
         self.view = View(
             header="----------------------------------------\n| Welcome to Chess Tournament Software "
-                   "|\n---------------------------------------- \n",
-            footer="\n*Select the commande by typing the number\n",
+                   "|\n----------------------------------------",
+            footer="\n*Select the command by typing the number\n",
         )
 
         # self.db_passed_tournament: Optional[Tournament] = None
@@ -64,7 +64,6 @@ class Controller:
             "3": "Load/Sava data",
             "4": "Exit"
         }
-
         user_choice = self.view.display_menu(choices)  # show the main menu
         if user_choice == "0":
             self.display_player_management_menu()
@@ -173,7 +172,6 @@ class Controller:
         db.close()
         self.db_players = self.reserialization_directory_resources('players')
         self.players = self.load_players_from_db()
-        # player.id = player_id
 
         self.display_player_management_menu()
 
@@ -497,7 +495,7 @@ class Controller:
             self.display_main_menu()
         self.display_reports_menu()
 
-    def generate_report(self, report_title:str, columns:list[str], report_data:list[dict]):
+    def generate_report(self, report_title: str, columns: list[str], report_data: list[dict]):
         filename = re.sub(r"\s+", "_", report_title)
         template = self.view.display_report_template()
         report_html = template.render(report_title=report_title, columns=columns, report_data=report_data)
@@ -592,5 +590,3 @@ class Controller:
                     'round end date': round.end_time
                 })
         return report_title, columns, report_data
-
-

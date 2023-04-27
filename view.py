@@ -8,12 +8,12 @@ class View:
         self.header = header
         self.header_main = "\n*What do you want to do ?"
         self.header_add_tournament = "*Please complete the information below"
-        self.footer = "\nPlease type the number for selecting \n"
+        self.footer = footer
 
     def display_menu(self, choices: Dict[str, str]):
 
         # a block to show add a new tournament,after the input return to the main menu
-        print(self.header_main)
+        print(self.header)
         choice = None
         self.display_dicts(choices)
         while choice not in choices:
