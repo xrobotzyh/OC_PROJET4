@@ -75,8 +75,7 @@ class Match:
             self.player_b[1] = 0.5
 
     def __str__(self):
-        return f"player A: {str(self.player_a[0])} VS player B: {str(self.player_b[0])} " \
-            #        f"- {self.player_b[0].first_name} {self.player_b[0].last_name} ({self.player_b[1]})"
+        return f"player A: {str(self.player_a[0])} VS player B: {str(self.player_b[0])} "
 
     def to_json(self):
         # ODO
@@ -91,10 +90,8 @@ class Match:
         for player in players:
             if player.id == document["player_a"][0]:
                 player_a = player
-                # score_a = document["player_a"][1]
             if player.id == document["player_b"][0]:
                 player_b = player
-                # score_b = document["player_b"][1]
         return cls(
             player_a=player_a,
             player_b=player_b,
@@ -244,7 +241,7 @@ class Tournament:
             'description': self.description,
             'current_round_number': self.current_round_number,
             'total_round_number': self.total_round_number,
-            'players_scores': self.players_scores,
+            'players_scores': {player.id: 0 for player in self.players},
             'player_ids': [player.id for player in self.players],
             'rounds': [round.to_json() for round in self.rounds],
         }
@@ -285,7 +282,6 @@ class Tournament:
 
     def finish(self):
         self.end_date = datetime.strftime(datetime.now(), DATETIME_FORMAT)
-
 
     def generate_first_round(self):
         """
@@ -355,7 +351,8 @@ class Tournament:
                 i += 1
         if not len(list_next_round):
             print('All matches distributed')
-        if current_round_matches:
+        if current_round_matches is not None:
+            # if current round match information is not None, create a round and start time information to db
             current_round = Round(current_round_matches, round_name)
             current_round.start()
             self.rounds.append(current_round)

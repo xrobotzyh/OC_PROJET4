@@ -64,7 +64,7 @@ class Controller:
             "3": "Load/Sava data",
             "4": "Exit"
         }
-        user_choice = self.view.display_menu(choices)  # show the main menu
+        user_choice = self.view.display_main_menu(choices)  # show the main menu
         if user_choice == "0":
             self.display_player_management_menu()
         elif user_choice == "1":
@@ -73,20 +73,20 @@ class Controller:
             self.display_reports_menu()
         elif user_choice == "3":
             self.load_save()
+            self.display_main_menu()
         elif user_choice == "4":
+            choice = self.view.get_user_input("Do you want to save your change? Y or N")
+            if choice in ["Y", "y"]:
+                self.load_save()
+            else:
+                pass
             self.view.display_message("\nSee you next time !\n")
             exit(0)
 
     def load_save(self):
         for id_tournament, tournament in self.tournaments.items():
             self.db_tournament.update(tournament.to_json(), doc_ids=[id_tournament])
-        # for document in self.db_current_tournament:
-        #     print(document.doc_id)
-        # self.db_passed_tournament.update(self.passed_tournament, doc_ids=self.db_passed_tournament.all_ids())
-        #     self.db_current_tournament.update(self.current_tournament, doc_ids=[1,2])
-        # self.db_current_tournament.write_back()
         self.__init__()
-        self.display_main_menu()
 
     def display_player_management_menu(self):
         choices = {
@@ -170,9 +170,8 @@ class Controller:
         db = self.db_players
         db.insert(Player.to_json(player))
         db.close()
-        self.db_players = self.reserialization_directory_resources('players')
-        self.players = self.load_players_from_db()
-
+        self.__init__()
+        # reload the menu
         self.display_player_management_menu()
 
     def update_player_by_id(self):
@@ -187,6 +186,8 @@ class Controller:
             self.view.display_message("Player updated successfully!")
         else:
             self.view.display_message(f"No such a player")
+        db.close()
+        self.__init__()
         self.display_player_management_menu()
 
     def display_update_player_menu(self):
@@ -211,7 +212,7 @@ class Controller:
         find = Query()
         find_first_name = self.view.get_user_input("\n### Enter the player's first name ###\n")
         players = db.search(find['first name'] == find_first_name)
-        if players == []:
+        if not players:
             self.view.display_message("\n###There is no such player's first name.###\n")
         else:
             for player in players:
@@ -224,6 +225,7 @@ class Controller:
     def find_player_id_by_last_name(self):
         db = self.db_players
         find = Query()
+        # find last name in database
         find_first_name = self.view.get_user_input("\n### Enter the player's last name ###\n")
         players = db.search(find['last name'] == find_first_name)
         if not players:
@@ -265,14 +267,13 @@ class Controller:
         tournament = Tournament.from_values(user_inputs)
         if tournament.is_finished():
             db = self.db_passed_tournament
-            # table_tournament = db.table(user_inputs['name'])
             db.insert(Tournament.to_json(tournament))
         else:
-            # tournament['id'] = self.generate_current_tournament_id()
             db = self.db_tournament
-            # table_tournament = db.table(user_inputs['name'])
             db.insert(Tournament.to_json(tournament))
         self.view.display_message(f'The tournament is created !')
+        db.close()
+        self.__init__()
         self.display_tournament_management_menu()
 
     def display_manage_a_current_tournament_menu(self):
@@ -295,9 +296,12 @@ class Controller:
         self.display_update_tournament_by_id()
 
     def current_tournament_enter_round_results(self):
+        # function to get input value of winner information for matches in round and calculate the scores
+        # of players in match
         round = self.current_tournament.rounds[-1]
         if not round.end_time:
             for match in round.matches:
+                # get input winner information
                 result = self.view.get_user_input(f"Enter match result player id {match.player_a[0]} VS player id "
                                                   f"{match.player_b[0]},The winner is 1 for "
                                                   f"{match.player_a[0].first_name} {match.player_a[0].last_name}, 2 "
@@ -310,14 +314,17 @@ class Controller:
         for match in round.matches:
             player_a_id = str(match.player_a[0].id)
             player_b_id = str(match.player_b[0].id)
+
+            # update scores according to winner information
             score_a = self.current_tournament.players_scores.get(player_a_id) + match.player_a[1]
-            score_b = self.current_tournament.players_scores.get(player_b_id) + match.player_b[1]
+            score_b = self.current_tournament.players_scores.get(player_a_id) + match.player_b[1]
             self.current_tournament.players_scores.update({player_a_id: score_a})
             self.current_tournament.players_scores.update({player_b_id: score_b})
             print(match.result)
         print(self.current_tournament.players_scores)
         self.current_tournament.current_round_number += 1
         self.current_tournament.rounds[-1].close()
+        # self.load_save()
 
     def display_update_tournament_by_id(self):
 
@@ -329,19 +336,29 @@ class Controller:
         }
         user_choice = self.view.display_menu(choices)  # show the main menu
         if user_choice == "0":
-            if not len(self.current_tournament.rounds):
+            # if it is the first round
+            if not self.current_tournament.rounds:
                 self.current_tournament.start()
             else:
-                if not self.current_tournament.rounds[-1].matches[-1].result:
+                # if the last round result has not been entered
+                if not self.current_tournament.rounds[-1].matches[
+                    0].result:  # if not self.current_tournament.rounds[-1].matches[-1].result:
                     self.view.display_message(f'Please enter the winner information for last round!')
                 else:
+                    # if it is not the first round and the last round winner information has been entered
+                    # go to next round
                     self.current_tournament.go_to_next_round()
             self.display_update_tournament_by_id()
         elif user_choice == "1":
-            if not self.current_tournament.rounds[-1].matches[-1].result:
+            # if the current round is start and result has not been entered, get the information and sort
+            # the player list by their scores
+            if not self.current_tournament.rounds:
+                self.view.display_message('The match is not start !')
+            elif not self.current_tournament.rounds[-1].matches[0].result:
                 self.current_tournament_enter_round_results()
                 self.current_tournament.sort_list_of_players_by_scores()
             else:
+                # if the current round is start and result has been entered,
                 self.view.display_message('Your haves entered the winner information')
             self.display_update_tournament_by_id()
         elif user_choice == "2":
@@ -352,15 +369,20 @@ class Controller:
     def update_information_of_a_tournament(self):
         change_value = self.display_update_tournament_information_menu()
         if change_value == "player_ids":
-            if not self.current_tournament.rounds[-1].matches[0]:
-                self.view.display_message(
-                    f'The player in the tournaments are : {self.current_tournament.players.__str__()}')
+            # check if the match is start,if started, can not update player list
+            if not self.current_tournament.rounds:
+                players = []
+                for player in self.current_tournament.players:
+                    players.append(str(player))
+                self.view.display_message(f'The player in the tournaments are : {players}')
                 new_value_player = self.add_players_to_tournament()
                 self.current_tournament.players = new_value_player
             else:
                 self.view.display_message('You can not edit the players list,because the match is started!')
+                self.display_update_tournament_by_id()
         elif change_value in ('start_date', 'end_date'):
-            if not self.current_tournament.rounds[-1].matches[0]:
+            # check if the match is start,if started, can not update date information
+            if not self.current_tournament.rounds:
                 new_value_date = self.view.get_user_input(f'please enter the new {change_value}')
                 new_value = datetime.strptime(new_value_date, "%d/%m/%Y")
                 setattr(self.current_tournament, change_value, new_value)
@@ -370,6 +392,7 @@ class Controller:
             new_value = self.view.get_user_input(f'please enter the new {change_value}')
             setattr(self.current_tournament, change_value, new_value)
         self.view.display_message("Tournament updated successfully!")
+        # self.load_save()
         self.display_update_tournament_by_id()
 
     def display_the_tournament(self):
@@ -436,7 +459,6 @@ class Controller:
                 break
         if tournament_found is None:
             self.view.display_message("The tournament is not found")
-        # print(tournament_found)
         return self.current_tournament
 
     def add_players_to_tournament(self) -> list[list[Document]]:
@@ -451,7 +473,6 @@ class Controller:
             else:
                 list_player.append(Player.from_json(player))
             choice = self.view.get_user_input('Do you want to add another player Y or N')
-            # list_player_obj = Player.from_json(list_player)
         return list_player
 
     def reserialization_directory_resources(self, filename):
@@ -496,6 +517,7 @@ class Controller:
         self.display_reports_menu()
 
     def generate_report(self, report_title: str, columns: list[str], report_data: list[dict]):
+        # get three attributes to generate with html template
         filename = re.sub(r"\s+", "_", report_title)
         template = self.view.display_report_template()
         report_html = template.render(report_title=report_title, columns=columns, report_data=report_data)
