@@ -359,6 +359,7 @@ class Tournament:
         else:
             print('It\'s not possible to distribute match.')
 
+
     def update_players_scores(self):
         round = self.rounds[-1]
         for match in round.matches:

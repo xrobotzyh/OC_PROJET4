@@ -320,8 +320,8 @@ class Controller:
             score_b = self.current_tournament.players_scores.get(player_a_id) + match.player_b[1]
             self.current_tournament.players_scores.update({player_a_id: score_a})
             self.current_tournament.players_scores.update({player_b_id: score_b})
-            print(match.result)
-        print(self.current_tournament.players_scores)
+        #     print(match.result)
+        # print(self.current_tournament.players_scores)
         self.current_tournament.current_round_number += 1
         self.current_tournament.rounds[-1].close()
         # self.load_save()
