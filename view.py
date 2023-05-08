@@ -11,18 +11,8 @@ class View:
         self.footer = footer
 
     def display_main_menu(self, choices: Dict[str, str]):
-
-        # a block to show add a new tournament,after the input return to the main menu
-        print(self.header)
         choice = None
-        self.display_dicts(choices)
-        while choice not in choices:
-            choice = input(self.footer)
-        return choice
-
-    def display_menu(self, choices: Dict[str, str]):
-        print(self.header_main)
-        choice = None
+        self.display_message(f'\n********************')
         self.display_dicts(choices)
         while choice not in choices:
             choice = input(self.footer)
@@ -48,6 +38,11 @@ class View:
 
         for key, value in dicts.items():
             print(f'{key}: {value}')
+
+    def display_lists(self, lists):
+        for list in lists:
+            print(f'{list}')
+
 
     def display_report_template(self):
         template = Template('''

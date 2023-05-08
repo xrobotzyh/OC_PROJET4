@@ -56,6 +56,9 @@ class Controller:
             tournaments[tournament_document.doc_id] = Tournament.from_json(tournament_document, players_db=self.players)
         return tournaments
 
+    def display_welcome_msg(self):
+        self.view.display_message(self.view.header)
+
     def display_main_menu(self):
         choices = {
             "0": "Manage Players",
@@ -64,7 +67,7 @@ class Controller:
             "3": "Load/Sava data",
             "4": "Exit"
         }
-        user_choice = self.view.display_main_menu(choices)  # show the main menu
+        user_choice = self.view.display_main_menu(choices)
         if user_choice == "0":
             self.display_player_management_menu()
         elif user_choice == "1":
@@ -75,18 +78,27 @@ class Controller:
             self.load_save()
             self.display_main_menu()
         elif user_choice == "4":
-            choice = self.view.get_user_input("Do you want to save your change? Y or N")
-            if choice in ["Y", "y"]:
-                self.load_save()
-            else:
-                pass
-            self.view.display_message("\nSee you next time !\n")
-            exit(0)
+            self.leave_prog()
+
+    def leave_prog(self):
+        choice = self.view.get_user_input("Do you want to save your change? Y or N")
+        if choice in ["Y", "y"]:
+            self.load_save()
+        else:
+            pass
+        self.tournament_to_finished_tournament()
+        self.view.display_message("\nSee you next time !\n")
+        exit(0)
 
     def load_save(self):
         for id_tournament, tournament in self.tournaments.items():
-            self.db_tournament.update(tournament.to_json(), doc_ids=[id_tournament])
-        self.__init__()
+            self.db_tournament.update(Tournament.to_json(tournament), doc_ids=[id_tournament])
+
+    def tournament_to_finished_tournament(self):
+        for id_tournament, tournament in self.tournaments.items():
+            if self.add_tournament_to_finished_tournament(tournament):
+                self.db_passed_tournament.insert(Tournament.to_json(tournament))
+                self.db_tournament.remove(doc_ids=[id_tournament])
 
     def display_player_management_menu(self):
         choices = {
@@ -95,7 +107,7 @@ class Controller:
             "2": "Show all Players",
             "3": "Back",
         }
-        user_choice = self.view.display_menu(choices)  # show the main menu
+        user_choice = self.view.display_main_menu(choices)
         if user_choice == "0":
             self.create_new_player()
         elif user_choice == "1":
@@ -104,6 +116,8 @@ class Controller:
             self.display_players()
         elif user_choice == "3":
             self.display_main_menu()
+        if user_choice in ['0', '2']:
+            self.display_player_management_menu()
 
     def display_update_player_information_menu(self) -> str:
         choices = {
@@ -112,16 +126,15 @@ class Controller:
             "2": "Edit the player's birthday",
             "3": "Edit the player's club id",
         }
-        user_choice = self.view.display_menu(choices)  # show the main menu
-        value = ''
+        user_choice = self.view.display_main_menu(choices)
         if user_choice == "0":
-            value = 'first name'
+            value = 'first_name'
         elif user_choice == "1":
-            value = 'last name'
+            value = 'last_name'
         elif user_choice == "2":
-            value = 'birthday DD/MM/YYYY'
-        elif user_choice == "3":
-            value = 'club id'
+            value = 'birthday'
+        else:
+            value = 'club_id'
         return value
 
     def display_update_tournament_information_menu(self) -> str:
@@ -133,31 +146,28 @@ class Controller:
             "4": "Edit the tournament's total round",
             "5": "Edit the tournament's players list",
             "6": "Edit the tournament's description",
+            "7": "back",
+
         }
-        user_choice = self.view.display_menu(choices)  # show the main menu
-        if user_choice == "0":
-            value = 'name'
+        user_choice = self.view.display_main_menu(choices)
+        if user_choice == '7':
+            self.display_update_tournament_by_id()
+        else:
+            if user_choice == "0":
+                value = 'name'
+            elif user_choice == "1":
+                value = 'location'
+            elif user_choice == "2":
+                value = 'start_date'
+            elif user_choice == "3":
+                value = 'end_date'
+            elif user_choice == "4":
+                value = 'total_round_number'
+            elif user_choice == "5":
+                value = 'player_ids'
+            else:
+                value = 'description'
             return value
-        elif user_choice == "1":
-            value = 'location'
-            return value
-        elif user_choice == "2":
-            value = 'start_date'
-            return value
-        elif user_choice == "3":
-            value = 'end_date'
-            return value
-        elif user_choice == "4":
-            value = 'total_round_number'
-            return value
-        elif user_choice == "5":
-            value = 'player_ids'
-            return value
-        elif user_choice == "6":
-            value = 'description'
-            return value
-        # else :
-        #     self.view.display_message('Please entre the number 1-6')
 
     def create_new_player(self):
         # Create player from user inputs
@@ -169,26 +179,22 @@ class Controller:
         # Persist player in DB
         db = self.db_players
         db.insert(Player.to_json(player))
-        db.close()
-        self.__init__()
-        # reload the menu
-        self.display_player_management_menu()
+        self.players = self.load_players_from_db()
 
     def update_player_by_id(self):
         db = self.db_players
-        find_id = self.view.get_user_input("\n### Enter the id ###\n")
+        find_id = self.view.get_user_input("### Enter the id ###")
         # ODO cleanup du controller, il ne doit pas gérer les entrées / sorties, c'est le role de la view
         player = self.players.get(int(find_id))
+        print(player)
         if player:
             change_value = self.display_update_player_information_menu()
-            new_value = self.view.get_user_input(f'please enter the new {change_value}\n')
+            new_value = self.view.get_user_input(f'please enter the new {change_value}')
             db.update({change_value: new_value}, doc_ids=[player.id])
             self.view.display_message("Player updated successfully!")
         else:
             self.view.display_message(f"No such a player")
-        db.close()
-        self.__init__()
-        self.display_player_management_menu()
+        self.players = self.load_players_from_db()
 
     def display_update_player_menu(self):
         choices = {
@@ -197,37 +203,35 @@ class Controller:
             "2": "Enter player's last name to find his id",
             "3": "back"
         }
-        user_choice = self.view.display_menu(choices)  # show the main menu
+        user_choice = self.view.display_main_menu(choices)
         if user_choice == "0":
             self.update_player_by_id()
         elif user_choice == "1":
             self.find_player_id_by_first_name()
         elif user_choice == "2":
             self.find_player_id_by_last_name()
-        elif user_choice == "3":
-            self.display_player_management_menu()
+        self.display_player_management_menu()
 
     def find_player_id_by_first_name(self):
         db = self.db_players
         find = Query()
-        find_first_name = self.view.get_user_input("\n### Enter the player's first name ###\n")
-        players = db.search(find['first name'] == find_first_name)
+        find_first_name = self.view.get_user_input("### Enter the player's first name ###")
+        players = db.search(find['first_name'] == find_first_name)
         if not players:
-            self.view.display_message("\n###There is no such player's first name.###\n")
+            self.view.display_message("###There is no such player's first name.###")
         else:
             for player in players:
-                self.view.display_message(f"\n### Players List number {player['id']} ###")
+                self.view.display_message(f"### Players List number {player['id']} ###")
                 for field, value in player.items():
                     player_msg = f"{field} : {value},"
                     self.view.display_message(player_msg)
-        self.display_player_management_menu()
 
     def find_player_id_by_last_name(self):
         db = self.db_players
         find = Query()
         # find last name in database
         find_first_name = self.view.get_user_input("\n### Enter the player's last name ###\n")
-        players = db.search(find['last name'] == find_first_name)
+        players = db.search(find['last_name'] == find_first_name)
         if not players:
             self.view.display_message("\n###There is no such player's first name.###\n")
         else:
@@ -236,12 +240,10 @@ class Controller:
                 for field, value in player.items():
                     player_msg = f"{field} : {value}, "
                     self.view.display_message(player_msg)
-        self.display_player_management_menu()
 
     def display_players(self):
         for player_id, player in self.players.items():
             self.view.display_message(str(player))
-        self.display_player_management_menu()
 
     def display_tournament_management_menu(self):
         choices = {
@@ -250,13 +252,15 @@ class Controller:
             "2": "Show the finished tournaments",
             "3": "Back",
         }
-        user_choice = self.view.display_menu(choices)  # show the main menu
+        user_choice = self.view.display_main_menu(choices)  # show the main menu
         if user_choice == "0":
             self.create_new_tournament()
+            self.display_tournament_management_menu()
         elif user_choice == "1":
             self.display_manage_a_current_tournament_menu()
         elif user_choice == "2":
             self.display_finished_tournament()
+            self.display_tournament_management_menu()
         elif user_choice == "3":
             self.display_main_menu()
 
@@ -268,13 +272,12 @@ class Controller:
         if tournament.is_finished():
             db = self.db_passed_tournament
             db.insert(Tournament.to_json(tournament))
+            self.passed_tournament = self.load_tournaments_from_db('/data/tournament')
         else:
             db = self.db_tournament
             db.insert(Tournament.to_json(tournament))
+            self.tournaments = self.load_tournaments_from_db('/data/tournament')
         self.view.display_message(f'The tournament is created !')
-        db.close()
-        self.__init__()
-        self.display_tournament_management_menu()
 
     def display_manage_a_current_tournament_menu(self):
         choices = {
@@ -282,18 +285,19 @@ class Controller:
             "1": "show the current tournament",
             "2": "back",
         }
-        user_choice = self.view.display_menu(choices)  # show the main menu
+        user_choice = self.view.display_main_menu(choices)  # show the main menu
         if user_choice == "0":
             self.display_manage_the_current_tournament_by_id_menu()
+            self.display_update_tournament_by_id()
         elif user_choice == "1":
             self.display_the_tournament()
-        elif user_choice == "2":
+            self.display_tournament_management_menu()
+        if user_choice != "2":
             self.display_tournament_management_menu()
 
     def display_manage_the_current_tournament_by_id_menu(self):
         tournament_id = self.view.get_user_input('Please enter the id of the tournament')
         self.load_tournament_by_id(tournament_id)
-        self.display_update_tournament_by_id()
 
     def current_tournament_enter_round_results(self):
         # function to get input value of winner information for matches in round and calculate the scores
@@ -316,61 +320,78 @@ class Controller:
             player_b_id = str(match.player_b[0].id)
 
             # update scores according to winner information
-            score_a = self.current_tournament.players_scores.get(player_a_id) + match.player_a[1]
-            score_b = self.current_tournament.players_scores.get(player_a_id) + match.player_b[1]
+            if self.current_tournament.players_scores.get(player_a_id):
+                score_a = self.current_tournament.players_scores.get(player_a_id) + match.player_a[1]
+                score_b = self.current_tournament.players_scores.get(player_b_id) + match.player_b[1]
+            else:
+                score_a = match.player_a[1]
+                score_b = match.player_b[1]
             self.current_tournament.players_scores.update({player_a_id: score_a})
             self.current_tournament.players_scores.update({player_b_id: score_b})
-        #     print(match.result)
-        # print(self.current_tournament.players_scores)
+
         self.current_tournament.current_round_number += 1
         self.current_tournament.rounds[-1].close()
-        # self.load_save()
+        self.load_save()
 
     def display_update_tournament_by_id(self):
-
         choices = {
             "0": "Generate next round game",
             "1": "Enter the winner information of the last match",
             "2": "update information of the tournament",
             "3": "back"
         }
-        user_choice = self.view.display_menu(choices)  # show the main menu
+        user_choice = self.view.display_main_menu(choices)
         if user_choice == "0":
-            # if it is the first round
-            if not self.current_tournament.rounds:
-                self.current_tournament.start()
-            else:
-                # if the last round result has not been entered
-                if not self.current_tournament.rounds[-1].matches[
-                    0].result:  # if not self.current_tournament.rounds[-1].matches[-1].result:
-                    self.view.display_message(f'Please enter the winner information for last round!')
-                else:
-                    # if it is not the first round and the last round winner information has been entered
-                    # go to next round
-                    self.current_tournament.go_to_next_round()
-            self.display_update_tournament_by_id()
+            self.check_first_round_or_not_generate_match()
         elif user_choice == "1":
-            # if the current round is start and result has not been entered, get the information and sort
-            # the player list by their scores
-            if not self.current_tournament.rounds:
-                self.view.display_message('The match is not start !')
-            elif not self.current_tournament.rounds[-1].matches[0].result:
-                self.current_tournament_enter_round_results()
-                self.current_tournament.sort_list_of_players_by_scores()
-            else:
-                # if the current round is start and result has been entered,
-                self.view.display_message('Your haves entered the winner information')
-            self.display_update_tournament_by_id()
+            self.check_result_entered_or_not_and_enter_result()
         elif user_choice == "2":
             self.update_information_of_a_tournament()
-        elif user_choice == "3":
+        else:
             self.display_tournament_management_menu()
+        if user_choice != '3':
+            self.display_update_tournament_by_id()
+
+    def check_first_round_or_not_generate_match(self):
+        if not self.current_tournament.rounds:
+            if self.current_tournament.start() is True:
+                self.view.display_message(f'Match {self.current_tournament.rounds[0].name}')
+                self.view.display_lists(self.current_tournament.rounds[0].matches)
+            else:
+                self.view.display_message(f'The number of the players must be even\n')
+        else:
+            # if the last round result has not been entered
+            if not self.current_tournament.rounds[-1].matches[0].result:
+                self.view.display_message(f'Please enter the winner information for last round!')
+            else:
+                # if it is not the first round and the last round winner information has been entered
+                # go to next round
+                if int(self.current_tournament.current_round_number) < int(self.current_tournament.total_round_number):
+                    self.current_tournament.go_to_next_round()
+                    self.view.display_message(f'Match {self.current_tournament.rounds[-1].name}')
+                    self.view.display_lists(self.current_tournament.rounds[-1].matches)
+                else:
+                    self.view.display_message(f'The tournament is finished !')
+        self.load_save()
+
+    def check_result_entered_or_not_and_enter_result(self):
+        # if the current round is start and result has not been entered, get the information and sort
+        # the player list by their scores
+        if not self.current_tournament.rounds:
+            self.view.display_message('The match is not start !')
+        elif not self.current_tournament.rounds[-1].matches[0].result:
+            self.current_tournament_enter_round_results()
+            self.current_tournament.sort_list_of_players_by_scores()
+        else:
+            # if the current round is start and result has been entered,
+            self.view.display_message('You haves entered the winner information!\n')
+        self.load_save()
 
     def update_information_of_a_tournament(self):
         change_value = self.display_update_tournament_information_menu()
         if change_value == "player_ids":
             # check if the match is start,if started, can not update player list
-            if not self.current_tournament.rounds:
+            if self.current_tournament.rounds == []:
                 players = []
                 for player in self.current_tournament.players:
                     players.append(str(player))
@@ -392,29 +413,34 @@ class Controller:
             new_value = self.view.get_user_input(f'please enter the new {change_value}')
             setattr(self.current_tournament, change_value, new_value)
         self.view.display_message("Tournament updated successfully!")
-        # self.load_save()
-        self.display_update_tournament_by_id()
+        self.load_save()
 
     def display_the_tournament(self):
+        self.load_save()
         tournaments = self.tournaments
         if len(tournaments) != 0:
             for tournament_number, tournament in tournaments.items():
                 self.view.display_message(f'\n### the list of tournament id {tournament_number} ####')
                 self.view.display_dicts(tournament.as_dict())
         else:
-            self.view.display_message(f'There is no finished tournament')
-        self.display_tournament_management_menu()
+            self.view.display_message(f'There is no current tournament')
+
+    def add_tournament_to_finished_tournament(self, tournament):
+        if int(tournament.total_round_number) <= int(tournament.current_round_number) \
+                or tournament.is_finished():
+            return True
+        else:
+            return False
 
     def display_finished_tournament(self):
+        self.load_save()
         tournaments = self.passed_tournament
-        print(len(tournaments))
         if len(tournaments) != 0:
             for tournament_number, tournament in tournaments.items():
                 self.view.display_message(f'\n### the list of tournament id {tournament_number} ####')
                 self.view.display_dicts(tournament.as_dict())
         else:
-            self.view.display_message(f'There is no passed tournament')
-        self.display_tournament_management_menu()
+            self.view.display_message(f'There is no finished tournament!')
 
     def load_tournament_by_id(self, tournament_id: str):
         tournament_found = self.find_tournament_by_id(tournament_id)
@@ -437,19 +463,21 @@ class Controller:
             return user_id
         return user_id
 
-    # def generate_tournament_id(self) -> int:
-    #     tournaments_names = db.tables() # reload json file everytime after a newplayer write to json file
-    #     tournament_id = len(tournaments_names) + 1
-    #     for tournament_name in tournaments_names:
-    #         tournament_document = db.table(tournament_name).all()
-    #         new_id = tournament_document['tournament id']
-    #         if tournament_id == new_id:
-    #             tournament_id = tournament_id + 1
-    #         return tournament_id
-    #     return tournament_id
-
     def find_tournament_by_id(self, search_key: str) -> Optional[Tournament]:
         tournaments = self.tournaments
+        tournament_found = None
+        for tournament_id, tournament in tournaments.items():
+            if int(search_key) == tournament_id:
+                tournament_found = tournament
+                self.current_tournament = tournament_found
+                self.view.display_message('The tournament is found !')
+                break
+        if tournament_found is None:
+            self.view.display_message("The tournament is not found")
+        return self.current_tournament
+
+    def find_passed_tournament_by_id(self, search_key: str) -> Optional[Tournament]:
+        tournaments = self.passed_tournament
         tournament_found = None
         for tournament_id, tournament in tournaments.items():
             if int(search_key) == tournament_id:
@@ -496,7 +524,7 @@ class Controller:
             "5": "back"
 
         }
-        user_choice = self.view.display_menu(choices)  # show the main menu
+        user_choice = self.view.display_main_menu(choices)  # show the main menu
         if user_choice == "0":
             report_title, columns, report_data = self.report_of_all_players_in_alphabetical_order()
             self.generate_report(report_title, columns, report_data)
@@ -504,13 +532,17 @@ class Controller:
             report_title, columns, report_data = self.report_of_all_tournaments()
             self.generate_report(report_title, columns, report_data)
         elif user_choice == "2":
-            report_title, columns, report_data = self.report_of_a_tournament_given()
+            type_of_tournament = self.choice_passed_or_current_tournament_menu()
+            report_title, columns, report_data = self.report_of_a_tournament_given(type_of_tournament)
             self.generate_report(report_title, columns, report_data)
         elif user_choice == "3":
-            report_title, columns, report_data = self.report_players_in_tournament()
+            type_of_tournament = self.choice_passed_or_current_tournament_menu()
+            report_title, columns, report_data = self.report_players_in_tournament(type_of_tournament)
             self.generate_report(report_title, columns, report_data)
         elif user_choice == "4":
-            report_title, columns, report_data = self.report_round_and_match_information_of_a_tournament()
+            type_of_tournament = self.choice_passed_or_current_tournament_menu()
+            report_title, columns, report_data = self.report_round_and_match_information_of_a_tournament \
+                (type_of_tournament)
             self.generate_report(report_title, columns, report_data)
         else:
             self.display_main_menu()
@@ -560,9 +592,34 @@ class Controller:
             })
         return report_title, columns, report_data
 
-    def report_of_a_tournament_given(self):
-        tournament_id = self.view.get_user_input('Please enter the id of the tournament')
-        tournament = self.find_tournament_by_id(tournament_id)
+    def choice_passed_or_current_tournament_menu(self):
+        choices = {
+            "0": "find a passed tournament by id",
+            "1": "find a current tournament by id",
+            "2": "back"
+        }
+        user_choice = self.view.display_main_menu(choices)
+        if user_choice == '2':
+            self.display_reports_menu()
+        else:
+            type_of_tournament = self.check_user_input_choice_report(user_choice)
+            return type_of_tournament
+
+    def check_user_input_choice_report(self, user_choice):
+        if user_choice == "0":
+            type_of_tournament = 'passed'
+        else:
+            type_of_tournament = 'current'
+        return type_of_tournament
+
+    def report_of_a_tournament_given(self, type_of_tournament):
+        tournament = None
+        while not tournament:
+            tournament_id = self.view.get_user_input('Please enter the id of the tournament')
+            if type_of_tournament == 'current':
+                tournament = self.find_tournament_by_id(tournament_id)
+            else:
+                tournament = self.find_passed_tournament_by_id(tournament_id)
         report_title = 'report of name and date for' + ' ' + str(tournament.name)
         columns = ['name', 'start date', 'end date']
         report_data = [{
@@ -572,9 +629,15 @@ class Controller:
         }]
         return report_title, columns, report_data
 
-    def report_players_in_tournament(self):
-        tournament_id = self.view.get_user_input('Please enter the id of the tournament')
-        tournament = self.find_tournament_by_id(tournament_id)
+
+    def report_players_in_tournament(self, type_of_tournament):
+        tournament = None
+        while not tournament:
+            tournament_id = self.view.get_user_input('Please enter the id of the tournament')
+            if type_of_tournament == 'current':
+                tournament = self.find_tournament_by_id(tournament_id)
+            else:
+                tournament = self.find_passed_tournament_by_id(tournament_id)
         sorted_list_player = sorted(tournament.players, key=lambda x: x.first_name)
         report_title = 'report of all players in tournament ' + ' ' + str(tournament.name)
         columns = ['id', 'first name', 'last name', 'club id']
@@ -588,9 +651,14 @@ class Controller:
             })
         return report_title, columns, report_data
 
-    def report_round_and_match_information_of_a_tournament(self):
-        tournament_id = self.view.get_user_input('Please enter the id of the tournament')
-        tournament = self.find_tournament_by_id(tournament_id)
+    def report_round_and_match_information_of_a_tournament(self, type_of_tournament):
+        tournament = None
+        while not tournament:
+            tournament_id = self.view.get_user_input('Please enter the id of the tournament')
+            if type_of_tournament == 'current':
+                tournament = self.find_tournament_by_id(tournament_id)
+            else:
+                tournament = self.find_passed_tournament_by_id(tournament_id)
         report_title = 'report of round and match information of tournament' + ' ' + str(tournament.name)
         columns = ['round name', 'match', 'winner', 'round start date', 'round end date']
         report_data = []
@@ -602,8 +670,6 @@ class Controller:
                     winner = match.player_b[0].first_name + ' ' + match.player_b[0].last_name
                 else:
                     winner = 'Tie'
-                # match_information = match.player_a[0].first_name + ' ' + match.player_a[0].last_name + ' VS ' + \
-                #                     match.player_b[0].first_name + ' ' + match.player_b[0].last_name
                 report_data.append({
                     'round name': round.name,
                     'match': match,

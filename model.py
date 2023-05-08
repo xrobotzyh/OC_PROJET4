@@ -6,7 +6,7 @@ DATETIME_FORMAT = "%d/%m/%Y"
 
 
 class Player:
-    # dictionnary of field_name: field description to create a new Player
+    # dictionary of field_name: field description to create a new Player
     INPUT_FIELDS = {
         'first_name': "Player's first name",
         'last_name': "Player's last name",
@@ -266,19 +266,17 @@ class Tournament:
         return self.end_date <= now
 
     def start(self):
-        self.generate_first_round()
+        check_number_even = self.generate_first_round()
+        return check_number_even
         # self.update_winner_state_match()
         # new_round: Round = self.generate_first_round()
         # self.rounds.append(new_round)
         # self.players_scores =
 
     def go_to_next_round(self):
-        current_round = self.rounds[-1]
+        # current_round = self.rounds[-1]
         # current_round.close()
-        if self.current_round_number == self.total_round_number:
-            self.finish()
-        else:
-            self.generate_next_round()
+        self.generate_next_round()
 
     def finish(self):
         self.end_date = datetime.strftime(datetime.now(), DATETIME_FORMAT)
@@ -286,36 +284,30 @@ class Tournament:
     def generate_first_round(self):
         """
         for the first round game,we use random function
+        :param check_number_even: a bool that check if the number of players are pair or not
         :param list_contestants: a list of contestants for the tournaments
         :return: a dictionary key = round information value = list every opponents
         """
-        match_number = 1
         list_matches = []
         round_name = 'round' + ' ' + str(self.current_round_number)
-        print(round_name)
         random.shuffle(self.players)
         if (len(self.players)) % 2 == 0:
+            check_number_even = True
             i = 0
             while i < len(self.players):
                 match = Match(self.players[i], self.players[i + 1])
                 list_matches.append(match)
-                print(f'Match {match_number}: {match}')
                 i += 2
-                match_number += 1
+            current_round = Round(list_matches, round_name)
+            current_round.start()
+            self.rounds.append(current_round)
         else:
-            print('The number of the players must be even')
-        # print(list_match_round_one)
-        current_round = Round(list_matches, round_name)
-        current_round.start()
-        self.rounds.append(current_round)
-        # print(self.rounds[0].to_json())
+            check_number_even = False
+        return check_number_even
 
-    def get_current_round_details(self) -> str:
-        pass
 
     def sort_list_of_players_by_scores(self):
         list_sorted = dict(sorted(self.players_scores.items(), key=lambda score: score[1], reverse=True))
-        print('The player list sorted by score is done')
         self.players_scores = list_sorted
         sorted_players = []
         for player_id in list_sorted.keys():
@@ -328,12 +320,10 @@ class Tournament:
         current_round_matches = []
         list_next_round = self.players.copy()
         round_name = 'round' + ' ' + str(self.current_round_number)
-        print(round_name)
         i = 1
         j = 0
-        match_number = 0
         total_matches = []
-        while j < self.current_round_number - 1:
+        while j < self.current_round_number - 1:            # get a list of all match pairs of passed round
             for match in self.rounds[j].matches:
                 total_matches.append([match.player_a[0], match.player_b[0]])
             j += 1
@@ -341,23 +331,25 @@ class Tournament:
             match = Match(list_next_round[0], list_next_round[i])
             if match != [] and [match.player_a[0], match.player_b[0]] not in total_matches and \
                     [match.player_b[0], match.player_a[0]] not in total_matches:
-                match_number += 1
                 current_round_matches.append(match)
                 list_next_round.remove(list_next_round[0])
                 list_next_round.remove(list_next_round[i - 1])
-                print(f'Match {match_number} :  {match.player_a[0]} VS {match.player_b[0]}\n')
                 i = 1
             else:
                 i += 1
-        if not len(list_next_round):
-            print('All matches distributed')
-        if current_round_matches is not None:
-            # if current round match information is not None, create a round and start time information to db
-            current_round = Round(current_round_matches, round_name)
-            current_round.start()
-            self.rounds.append(current_round)
-        else:
-            print('It\'s not possible to distribute match.')
+        if current_round_matches == []:
+            # if the rules of pair can not be respected, and the game is not finished, just pair the nearest two players
+            list_next_round = self.players.copy()
+            k = 1
+            while k <= len(list_next_round) - 1:
+                match = Match(list_next_round[0], list_next_round[k])
+                current_round_matches.append(match)
+                list_next_round.remove(list_next_round[0])
+                list_next_round.remove(list_next_round[k - 1])
+                k = 1
+        current_round = Round(current_round_matches, round_name)
+        current_round.start()    # round start time
+        self.rounds.append(current_round)
 
 
     def update_players_scores(self):
@@ -369,4 +361,3 @@ class Tournament:
             score_b = self.players_scores.get(player_b_id) + match.player_b[1]
             self.players_scores.update({player_a_id: score_a})
             self.players_scores.update({player_b_id: score_b})
-        print(self.players_scores)
