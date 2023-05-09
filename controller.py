@@ -388,7 +388,7 @@ class Controller:
             self.current_tournament.sort_list_of_players_by_scores()
         else:
             # if the current round is start and result has been entered,
-            self.view.display_message('You haves entered the winner information!\n')
+            self.view.display_message('You have entered the winner information!\n')
         self.load_save()
 
     def update_information_of_a_tournament(self):
