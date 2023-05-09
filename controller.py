@@ -366,12 +366,16 @@ class Controller:
             else:
                 # if it is not the first round and the last round winner information has been entered
                 # go to next round
-                if int(self.current_tournament.current_round_number) <= int(self.current_tournament.total_round_number):
+                if int(self.current_tournament.current_round_number) > int(self.current_tournament.total_round_number):
+                    self.view.display_message(f'The tournament is finished !')
+                else:
+                    if int(self.current_tournament.current_round_number) == \
+                            int(self.current_tournament.total_round_number):
+                        # current round number = total round number,change last game date
+                        self.current_tournament.end_date = datetime.now()
                     self.current_tournament.go_to_next_round()
                     self.view.display_message(f'Match {self.current_tournament.rounds[-1].name}')
                     self.view.display_lists(self.current_tournament.rounds[-1].matches)
-                else:
-                    self.view.display_message(f'The tournament is finished !')
         self.load_save()
 
     def check_result_entered_or_not_and_enter_result(self):
