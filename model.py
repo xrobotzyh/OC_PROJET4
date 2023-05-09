@@ -303,8 +303,8 @@ class Tournament:
             self.rounds.append(current_round)
         else:
             check_number_even = False
+        self.start_date = datetime.now()
         return check_number_even
-
 
     def sort_list_of_players_by_scores(self):
         list_sorted = dict(sorted(self.players_scores.items(), key=lambda score: score[1], reverse=True))
@@ -323,7 +323,7 @@ class Tournament:
         i = 1
         j = 0
         total_matches = []
-        while j < self.current_round_number - 1:            # get a list of all match pairs of passed round
+        while j < self.current_round_number - 1:  # get a list of all match pairs of passed round
             for match in self.rounds[j].matches:
                 total_matches.append([match.player_a[0], match.player_b[0]])
             j += 1
@@ -348,9 +348,8 @@ class Tournament:
                 list_next_round.remove(list_next_round[k - 1])
                 k = 1
         current_round = Round(current_round_matches, round_name)
-        current_round.start()    # round start time
+        current_round.start()  # round start time
         self.rounds.append(current_round)
-
 
     def update_players_scores(self):
         round = self.rounds[-1]

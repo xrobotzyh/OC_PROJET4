@@ -342,7 +342,7 @@ class Controller:
         }
         user_choice = self.view.display_main_menu(choices)
         if user_choice == "0":
-            self.check_first_round_or_not_generate_match()
+            self.check_first_last_round_and_generate_match()
         elif user_choice == "1":
             self.check_result_entered_or_not_and_enter_result()
         elif user_choice == "2":
@@ -352,7 +352,7 @@ class Controller:
         if user_choice != '3':
             self.display_update_tournament_by_id()
 
-    def check_first_round_or_not_generate_match(self):
+    def check_first_last_round_and_generate_match(self):
         if not self.current_tournament.rounds:
             if self.current_tournament.start() is True:
                 self.view.display_message(f'Match {self.current_tournament.rounds[0].name}')
@@ -366,7 +366,7 @@ class Controller:
             else:
                 # if it is not the first round and the last round winner information has been entered
                 # go to next round
-                if int(self.current_tournament.current_round_number) < int(self.current_tournament.total_round_number):
+                if int(self.current_tournament.current_round_number) <= int(self.current_tournament.total_round_number):
                     self.current_tournament.go_to_next_round()
                     self.view.display_message(f'Match {self.current_tournament.rounds[-1].name}')
                     self.view.display_lists(self.current_tournament.rounds[-1].matches)
@@ -471,10 +471,9 @@ class Controller:
                 tournament_found = tournament
                 self.current_tournament = tournament_found
                 self.view.display_message('The tournament is found !')
-                break
+                return self.current_tournament
         if tournament_found is None:
             self.view.display_message("The tournament is not found")
-        return self.current_tournament
 
     def find_passed_tournament_by_id(self, search_key: str) -> Optional[Tournament]:
         tournaments = self.passed_tournament
@@ -482,12 +481,11 @@ class Controller:
         for tournament_id, tournament in tournaments.items():
             if int(search_key) == tournament_id:
                 tournament_found = tournament
-                self.current_tournament = tournament_found
+                self.passed_tournament = tournament_found
                 self.view.display_message('The tournament is found !')
-                break
+                return self.passed_tournament
         if tournament_found is None:
             self.view.display_message("The tournament is not found")
-        return self.current_tournament
 
     def add_players_to_tournament(self) -> list[list[Document]]:
         list_player = []
@@ -613,13 +611,7 @@ class Controller:
         return type_of_tournament
 
     def report_of_a_tournament_given(self, type_of_tournament):
-        tournament = None
-        while not tournament:
-            tournament_id = self.view.get_user_input('Please enter the id of the tournament')
-            if type_of_tournament == 'current':
-                tournament = self.find_tournament_by_id(tournament_id)
-            else:
-                tournament = self.find_passed_tournament_by_id(tournament_id)
+        tournament = self.find_tournament_for_report(type_of_tournament)
         report_title = 'report of name and date for' + ' ' + str(tournament.name)
         columns = ['name', 'start date', 'end date']
         report_data = [{
@@ -629,15 +621,8 @@ class Controller:
         }]
         return report_title, columns, report_data
 
-
     def report_players_in_tournament(self, type_of_tournament):
-        tournament = None
-        while not tournament:
-            tournament_id = self.view.get_user_input('Please enter the id of the tournament')
-            if type_of_tournament == 'current':
-                tournament = self.find_tournament_by_id(tournament_id)
-            else:
-                tournament = self.find_passed_tournament_by_id(tournament_id)
+        tournament = self.find_tournament_for_report(type_of_tournament)
         sorted_list_player = sorted(tournament.players, key=lambda x: x.first_name)
         report_title = 'report of all players in tournament ' + ' ' + str(tournament.name)
         columns = ['id', 'first name', 'last name', 'club id']
@@ -651,14 +636,8 @@ class Controller:
             })
         return report_title, columns, report_data
 
-    def report_round_and_match_information_of_a_tournament(self, type_of_tournament):
-        tournament = None
-        while not tournament:
-            tournament_id = self.view.get_user_input('Please enter the id of the tournament')
-            if type_of_tournament == 'current':
-                tournament = self.find_tournament_by_id(tournament_id)
-            else:
-                tournament = self.find_passed_tournament_by_id(tournament_id)
+    def report_round_and_match_information_of_a_tournament(self, type_of_tournament:str):
+        tournament = self.find_tournament_for_report(type_of_tournament)
         report_title = 'report of round and match information of tournament' + ' ' + str(tournament.name)
         columns = ['round name', 'match', 'winner', 'round start date', 'round end date']
         report_data = []
@@ -678,3 +657,15 @@ class Controller:
                     'round end date': round.end_time
                 })
         return report_title, columns, report_data
+
+    def find_tournament_for_report(self, type_of_tournament:str) -> Tournament:
+        tournament = None
+        while not tournament:
+            tournament_id = self.view.get_user_input('Please enter the id of the tournament')
+            if type_of_tournament == 'current':
+                self.tournaments = self.load_tournaments_from_db('/data/tournament')
+                tournament = self.find_tournament_by_id(tournament_id)
+            else:
+                self.passed_tournament = self.load_tournaments_from_db('/data/passed_tournament')
+                tournament = self.find_passed_tournament_by_id(tournament_id)
+        return tournament
