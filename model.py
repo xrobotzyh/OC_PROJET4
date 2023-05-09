@@ -338,7 +338,7 @@ class Tournament:
             else:
                 i += 1
         if current_round_matches == []:
-            # if the rules of pair can not be respected, and the game is not finished, just pair the nearest two players
+            # if the rules of pair can not be respected, and the game is not finished,just pair the nearest two players
             list_next_round = self.players.copy()
             k = 1
             while k <= len(list_next_round) - 1:

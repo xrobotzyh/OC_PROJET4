@@ -1,13 +1,10 @@
 import os
 from pathlib import Path
 from typing import Dict, Optional, List
-import random
-
 from tinydb.table import Document
-
 from view import View
-from model import Player, Tournament, Match
-from tinydb import TinyDB, Query, table
+from model import Player, Tournament
+from tinydb import TinyDB, Query
 from tinydb.storages import JSONStorage
 from tinydb_serialization import SerializationMiddleware
 from tinydb_serialization.serializers import DateTimeSerializer
@@ -53,7 +50,8 @@ class Controller:
         tournaments_document = db.all()
         tournaments = {}
         for tournament_document in tournaments_document:
-            tournaments[tournament_document.doc_id] = Tournament.from_json(tournament_document, players_db=self.players)
+            tournaments[tournament_document.doc_id] = \
+                Tournament.from_json(tournament_document, players_db=self.players)
         return tournaments
 
     def display_welcome_msg(self):
@@ -246,8 +244,8 @@ class Controller:
             self.generate_report(report_title, columns, report_data)
         elif user_choice == "4":
             type_of_tournament = self.choice_passed_or_current_tournament_menu()
-            report_title, columns, report_data = self.report_round_and_match_information_of_a_tournament \
-                (type_of_tournament)
+            report_title, columns, report_data = \
+                self.report_round_and_match_information_of_a_tournament(type_of_tournament)
             self.generate_report(report_title, columns, report_data)
         else:
             self.display_main_menu()
@@ -298,7 +296,7 @@ class Controller:
             db.update({change_value: new_value}, doc_ids=[player.id])
             self.view.display_message("Player updated successfully!")
         else:
-            self.view.display_message(f"No such a player")
+            self.view.display_message("No such a player")
         self.players = self.load_players_from_db()
 
     def find_player_id_by_first_name(self):
@@ -347,7 +345,7 @@ class Controller:
             db = self.db_tournament
             db.insert(Tournament.to_json(tournament))
             self.tournaments = self.load_tournaments_from_db('/data/tournament')
-        self.view.display_message(f'The tournament is created !')
+        self.view.display_message('The tournament is created !')
 
     def display_manage_the_current_tournament_by_id_menu(self):
         tournament_id = self.view.get_user_input('Please enter the id of the tournament')
@@ -392,16 +390,16 @@ class Controller:
                 self.view.display_message(f'Match {self.current_tournament.rounds[0].name}')
                 self.view.display_lists(self.current_tournament.rounds[0].matches)
             else:
-                self.view.display_message(f'The number of the players must be even\n')
+                self.view.display_message('The number of the players must be even\n')
         else:
             # if the last round result has not been entered
             if not self.current_tournament.rounds[-1].matches[0].result:
-                self.view.display_message(f'Please enter the winner information for last round!')
+                self.view.display_message('Please enter the winner information for last round!')
             else:
                 # if it is not the first round and the last round winner information has been entered
                 # go to next round
                 if int(self.current_tournament.current_round_number) > int(self.current_tournament.total_round_number):
-                    self.view.display_message(f'The tournament is finished !')
+                    self.view.display_message('The tournament is finished !')
                 else:
                     if int(self.current_tournament.current_round_number) == \
                             int(self.current_tournament.total_round_number):
@@ -461,7 +459,7 @@ class Controller:
                 self.view.display_message(f'\n### the list of tournament id {tournament_number} ####')
                 self.view.display_dicts(tournament.as_dict())
         else:
-            self.view.display_message(f'There is no current tournament')
+            self.view.display_message('There is no current tournament')
 
     def add_tournament_to_finished_tournament(self, tournament: Tournament) -> bool:
         # check if the tournament is finished
@@ -479,7 +477,7 @@ class Controller:
                 self.view.display_message(f'\n### the list of tournament id {tournament_number} ####')
                 self.view.display_dicts(tournament.as_dict())
         else:
-            self.view.display_message(f'There is no finished tournament!')
+            self.view.display_message('There is no finished tournament!')
 
     def load_tournament_by_id(self, tournament_id: str):
         tournament_found = self.find_tournament_by_id(tournament_id)

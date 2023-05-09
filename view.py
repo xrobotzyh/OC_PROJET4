@@ -12,7 +12,7 @@ class View:
 
     def display_main_menu(self, choices: Dict[str, str]):
         choice = None
-        self.display_message(f'\n********************')
+        self.display_message('\n********************')
         self.display_dicts(choices)
         while choice not in choices:
             choice = input(self.footer)
@@ -42,7 +42,6 @@ class View:
     def display_lists(self, lists):
         for list in lists:
             print(f'{list}')
-
 
     def display_report_template(self):
         template = Template('''
