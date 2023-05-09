@@ -22,7 +22,6 @@ class Controller:
             footer="\n*Select the command by typing the number\n",
         )
 
-        # self.db_passed_tournament: Optional[Tournament] = None
         self.db_players = self.reserialization_directory_resources('players')
         self.db_tournament = self.reserialization_directory_resources('/data/tournament')
         self.db_passed_tournament = self.reserialization_directory_resources('/data/passed_tournament')
@@ -30,7 +29,6 @@ class Controller:
         self.players: Dict[int, Player] = self.load_players_from_db()
         self.current_tournament: Tournament = None
         self.tournaments: Dict[int, Tournament] = self.load_tournaments_from_db('/data/tournament')
-        # self.current_tournament: Dict[int, Tournament] = self.load_tournaments_from_db('/data/current_tournament')
         self.passed_tournament: Dict[int, Tournament] = self.load_tournaments_from_db('/data/passed_tournament')
 
     def load_players_from_db(self) -> Dict[int, Player]:
@@ -268,7 +266,7 @@ class Controller:
     def tournament_to_finished_tournament(self):
         for id_tournament, tournament in self.tournaments.items():
             if self.add_tournament_to_finished_tournament(tournament):
-                tournament.current_round_number = tournament.current_round_number - 1
+                tournament.current_round_number = int(tournament.current_round_number - 1)
                 self.db_passed_tournament.insert(Tournament.to_json(tournament))
                 self.db_tournament.remove(doc_ids=[id_tournament])
 
@@ -289,7 +287,7 @@ class Controller:
         find_id = self.view.get_user_input("### Enter the id ###")
         # ODO cleanup du controller, il ne doit pas gérer les entrées / sorties, c'est le role de la view
         player = self.players.get(int(find_id))
-        print(player)
+        self.view.display_message(player)
         if player:
             change_value = self.display_update_player_information_menu()
             new_value = self.view.get_user_input(f'please enter the new {change_value}')
@@ -340,7 +338,7 @@ class Controller:
         if tournament.is_finished():
             db = self.db_passed_tournament
             db.insert(Tournament.to_json(tournament))
-            self.passed_tournament = self.load_tournaments_from_db('/data/tournament')
+            self.passed_tournament = self.load_tournaments_from_db('/data/passed_tournament')
         else:
             db = self.db_tournament
             db.insert(Tournament.to_json(tournament))
@@ -452,7 +450,7 @@ class Controller:
         self.load_save()
 
     def display_the_tournament(self):
-        self.load_save()
+        # self.load_save()
         tournaments = self.tournaments
         if len(tournaments) != 0:
             for tournament_number, tournament in tournaments.items():
@@ -470,9 +468,9 @@ class Controller:
             return False
 
     def display_finished_tournament(self):
-        self.load_save()
+        # self.load_save()
         tournaments = self.passed_tournament
-        if len(tournaments) != 0:
+        if tournaments is not None:
             for tournament_number, tournament in tournaments.items():
                 self.view.display_message(f'\n### the list of tournament id {tournament_number} ####')
                 self.view.display_dicts(tournament.as_dict())
@@ -518,9 +516,9 @@ class Controller:
         for tournament_id, tournament in tournaments.items():
             if int(search_key) == tournament_id:
                 tournament_found = tournament
-                self.passed_tournament = tournament_found
+                # self.passed_tournament = tournament_found
                 self.view.display_message('The tournament is found !')
-                return self.passed_tournament
+                return tournament_found
         if tournament_found is None:
             self.view.display_message("The tournament is not found")
 
@@ -666,9 +664,7 @@ class Controller:
         while not tournament:
             tournament_id = self.view.get_user_input('Please enter the id of the tournament')
             if type_of_tournament == 'current':
-                self.tournaments = self.load_tournaments_from_db('/data/tournament')
                 tournament = self.find_tournament_by_id(tournament_id)
             else:
-                self.passed_tournament = self.load_tournaments_from_db('/data/passed_tournament')
                 tournament = self.find_passed_tournament_by_id(tournament_id)
         return tournament
