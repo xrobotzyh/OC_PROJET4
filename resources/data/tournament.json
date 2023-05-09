@@ -1,1 +1,1 @@
-{"_default": {}}
+{"_default": {"2": {"name": "da da da", "location": "lyon", "start_date": "14/08/2023", "end_date": "30/08/2023", "description": "big game", "current_round_number": 1, "total_round_number": 4, "players_scores": {"1": 0, "2": 0}, "player_ids": [1, 2], "rounds": []}}}

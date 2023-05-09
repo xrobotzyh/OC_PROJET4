@@ -198,7 +198,7 @@ class Tournament:
             start_date=start_date,
             end_date=end_date,
             description=values['tournament description'],
-            total_round_number=4,
+            total_round_number=values['total round number'],
             players=players,
         )
 
