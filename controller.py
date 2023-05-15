@@ -60,8 +60,8 @@ class Controller:
             "0": "Manage Players",
             "1": "Manage tournament",
             "2": "Show Reports",
-            "3": "Load/Sava data",
-            "4": "Exit"
+            "3": "Exit",
+            # "4": ""
         }
         user_choice = self.view.display_main_menu(choices)
         if user_choice == "0":
@@ -70,10 +70,10 @@ class Controller:
             self.display_tournament_management_menu()
         elif user_choice == "2":
             self.display_reports_menu()
+        # elif user_choice == "3":
+        #     self.load_save()
+        #     self.display_main_menu()
         elif user_choice == "3":
-            self.load_save()
-            self.display_main_menu()
-        elif user_choice == "4":
             self.leave_prog()
 
     def display_player_management_menu(self):

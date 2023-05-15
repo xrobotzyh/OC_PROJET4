@@ -1,1 +1,44 @@
-{"_default": {"1": {"name": "lastest one", "location": "lyon", "start_date": "20/05/2023", "end_date": "30/05/2023", "description": "big game", "current_round_number": 1, "total_round_number": "4", "players_scores": {"1": 0, "2": 0, "3": 0}, "player_ids": [1, 2, 3], "rounds": []}}}
+{
+  "_default": {
+    "1": {
+      "name": "lastest one",
+      "location": "lyon",
+      "start_date": "20/05/2023",
+      "end_date": "30/05/2023",
+      "description": "big game",
+      "current_round_number": 1,
+      "total_round_number": "4",
+      "players_scores": {
+        "1": 0,
+        "2": 0,
+        "3": 0
+      },
+      "player_ids": [
+        1,
+        2,
+        3
+      ],
+      "rounds": []
+    },
+    "2": {
+      "name": "all star game 2.0",
+      "location": "versailles",
+      "start_date": "11/06/2023",
+      "end_date": "30/06/2023",
+      "description": "big game",
+      "current_round_number": 1,
+      "total_round_number": "4",
+      "players_scores": {
+        "1": 0,
+        "3": 0,
+        "5": 0
+      },
+      "player_ids": [
+        1,
+        3,
+        5
+      ],
+      "rounds": []
+    }
+  }
+}
